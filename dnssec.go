@@ -9,7 +9,6 @@ Checks:
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 
@@ -19,7 +18,7 @@ import (
 )
 
 func main() {
-	checkKey(os.Args[1])
+	dnssecQuery(os.Args[1], dns.TypeANY)
 }
 
 // TODO: Throw error handling
@@ -39,12 +38,4 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 		r = nil
 	}
 	return *r
-}
-
-// Checks if the DNSKEY uses accepted (?) algorithms
-func checkKey(fqdn string) {
-	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
-	for i := range r.Answer {
-		fmt.Printf("%v\n", i)
-	}
 }
