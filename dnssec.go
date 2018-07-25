@@ -9,15 +9,19 @@ Checks:
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/miekg/dns"
 )
 
 func main() {
+	internal_id := os.Args[1]
+	report_id := os.Args[2]
+	hostname := os.Args[3]
+	//hostip and type are "-"
 	checkKey(os.Args[1])
 }
 
@@ -68,13 +72,72 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 // - 15 = Ed25519 (128bit security aim)
 // - 16 = ED448
 
+type finding struct {
+	name      string
+	data      string
+	goodness  uint8
+	certainty uint8
+	comment   string
+}
+
 func checkKey(fqdn string) {
 	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
 	for _, i := range r.Answer {
-		x := regexp.MustCompile("( +?|\t+?)").Split(i.String(), -1)
-		for _, k := range x {
-			fmt.Printf("%v\n", k)
+		x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
+		if x[5] == "3" {
+			h := finding{"", i.String(), 0, 0, ""}
+			if x[4] == "256" {
+				h.name = "ZSK key strength"
+			} else if x[4] == "257" {
+				h.name = "KSK key strength"
+			}
+			s, _ := strconv.ParseInt(x[6], 10, 8)
+			switch s {
+			case 1: // RSA/MD5
+				h.goodness = 10
+				h.certainty = 100
+			case 3: // DSA/SHA-1
+				// Check key length
+			case 5: // RSA/SHA-1
+				//
+				h.goodness = 80
+				h.certainty = 100
+			case 6: // RSA/SHA-1/NSEC3
+				// Could be better
+				h.goodness = 80
+				h.certainty = 100
+			case 7: // RSA/SHA-1/NSEC3
+				// Could be better
+				h.goodness = 80
+				h.certainty = 100
+			case 8: // RSA/SHA-256
+				// Check key length
+				// BSI Recommended -> perfectly fine
+				h.goodness = 100
+				h.certainty = 100
+			case 10: // RSA/SHA-512
+				// check key length
+				// perfectly fine
+				h.goodness = 100
+				h.certainty = 100
+			case 13: // ECDSA P-256 (128bit sec) with SHA-256
+				// perfectly fine
+				h.goodness = 100
+				h.certainty = 100
+			case 14: //ECDSA P-384 (192bit sec)
+				// perfectly fine
+				h.goodness = 100
+				h.certainty = 100
+			case 15: // Ed25519 (128bit sec)
+				// perfectly fine but unusual
+				h.goodness = 90
+				h.certainty = 100
+			case 16: // ED448
+				// perfectly fine but unusual
+				h.goodness = 90
+				h.certainty = 100
+			default:
+			}
 		}
 	}
-
 }
