@@ -85,6 +85,7 @@ func checkKey(fqdn string) {
 	for _, i := range r.Answer {
 		x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
 		if x[5] == "3" {
+			a := finding{"", i.String(), 0, 0, ""}
 			h := finding{"", i.String(), 0, 0, ""}
 			if x[4] == "256" {
 				h.name = "ZSK key strength"
@@ -94,12 +95,12 @@ func checkKey(fqdn string) {
 			s, _ := strconv.ParseInt(x[6], 10, 8)
 			switch s {
 			case 1: // RSA/MD5
-				h.goodness = 10
+				h.goodness = 0
 				h.certainty = 100
 			case 3: // DSA/SHA-1
 				// Check key length
 			case 5: // RSA/SHA-1
-				//
+				// SHA-256 would be better
 				h.goodness = 80
 				h.certainty = 100
 			case 6: // RSA/SHA-1/NSEC3
@@ -121,7 +122,7 @@ func checkKey(fqdn string) {
 				h.goodness = 100
 				h.certainty = 100
 			case 13: // ECDSA P-256 (128bit sec) with SHA-256
-				// perfectly fine
+				// SHA-256 is perfectly fine
 				h.goodness = 100
 				h.certainty = 100
 			case 14: //ECDSA P-384 (192bit sec)
@@ -129,11 +130,11 @@ func checkKey(fqdn string) {
 				h.goodness = 100
 				h.certainty = 100
 			case 15: // Ed25519 (128bit sec)
-				// perfectly fine but unusual
+				// perfectly fine but unusual (-10)
 				h.goodness = 90
 				h.certainty = 100
 			case 16: // ED448
-				// perfectly fine but unusual
+				// perfectly fine but unusual (-10)
 				h.goodness = 90
 				h.certainty = 100
 			default:
