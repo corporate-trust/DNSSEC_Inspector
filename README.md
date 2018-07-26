@@ -9,16 +9,27 @@
 * github.com/miekg/dns
 
 
-## Findings
-
-### Finding 1:
-* DNSSEC ist für diese Zone nicht installiert.
-* DNSSEC is not used in this zone
-* goodness: 0%
-* certainty: 100%
-
-### Finding 2:
-* Die Zone befindet sich gerade in einem Key Rollover (multiple DNSKEY RRs für DNSSEC)
-* Could
-* goodness: ??
-* certainty: 80%
+## Output
+``` json
+{
+    "DNSSEC": true,
+    "NSEC3": true,
+    "Used": true,
+    "Keys":
+    {
+        "count": 1, 
+        "runningRollover": false,
+        "Key":
+        {
+            "Type": "KSK",
+            "Hash": "SHA-1",
+            "H-Comment": "COMPLIANT",
+            "H-Until": "2023+",
+            "Alg": "RSA",
+            "Key-length": 2048,
+            "A-Comment": "COMPLIANT",
+            "A-Until": "2022",
+        }
+    }
+}
+```
