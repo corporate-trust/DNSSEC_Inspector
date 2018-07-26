@@ -9,7 +9,6 @@ Checks:
 package main
 
 import (
-	"net"
 	"os"
 	"regexp"
 	"strconv"
@@ -46,7 +45,6 @@ func main() {
 	out := Out()
 	checkKeys(os.Args[1], &out)
 }
-
 // TODO: Throw error handling
 func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
@@ -57,10 +55,7 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	k.tative = true
 	k.onDesired = true
 	r, _, _ := c.Exchange(k.inHostPort(config.Servers[0], config.Port))
-	if r == nil {
-		r = nil
-	}
-	if r.Rcode != dns.RcodeSuccess {
+	if r == nil || r.Rcode != dns.RcodeSuccess {
 		r = nil
 	}
 	return *r
@@ -133,3 +128,47 @@ func checkKeys(fqdn string, out *Out) {
 		}
 	}
 }
+
+
+
+/*
+package main
+
+import (
+	"encoding/base64"
+	//"strconv"
+	"fmt"
+)
+
+func keyLength(keyIn string) (e, n, l int) {
+	// Base64 encoding
+	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
+	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
+
+	err := keyBinary
+	if err == nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	if keyBinary[0] == 0 {
+		e := keyBinary[1:3]
+		n := keyBinary[3:]
+		l := len(n) * 8
+		fmt.Printf("e: %s\nn: %s\nl: %d", e, n, l)
+	} else {
+		// requires import "strconv"
+		// e := strconv.ParseInt(keyBinary[1], 2, 64)
+		e := keyBinary[1]
+		n := keyBinary[2:]
+		l := len(n) * 8
+		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
+	}
+	return e, n, l
+}
+
+func main() {
+	keyInput := "AwEAAcPXtQjs85qD8rnBCxGLRcm1Ghc0jWAS8ExiEaKUBK24yp6DpvuqQFevVfFXT3SUcrMw9La9dUHk0ZLFMZTC+irx4+/iaR9UYG6WW7xpWD12l0NotT0Z7GELKk5mCCnWUe72hVolxrvmaMT3J0GcP0FvSqFicuDEjAzYEoGEiYD5"
+	keyLength(keyInput)
+}
+*/
