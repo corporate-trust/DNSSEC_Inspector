@@ -16,4 +16,13 @@ Get string --> decode --> split in parts (caution 1-3 exponent length number)
 
 if first octet == '00'
 then
-    Die nächsten zwei bytes beschreiben die länge des exponets in oktets
+    Die nächsten zwei bytes beschreiben die länge des exponents in oktets
+
+**************************
+1. Base64 decoden
+2. If 00 formatieren
+3. modulus auslesen
+    - 1024/8 = 128 (dec)
+    - 128 dec = 80 hex
+**************************
+
