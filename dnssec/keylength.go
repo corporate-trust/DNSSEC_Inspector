@@ -36,7 +36,7 @@ func keyLengthRSA(keyIn string) (e, n, l int) {
 	return e, n, l
 }
 
-func keyLengthDSA(keyIn string) (e, n, l int) {
+func keyLengthDSA(keyIn string) (length int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
 	err := keyBinary
@@ -44,9 +44,16 @@ func keyLengthDSA(keyIn string) (e, n, l int) {
 		fmt.Println("Error:", err)
 		return
 	}
+	t := keyBinary[0]
+	q := new(big.Int).SetBytes(keyBinary[1:21])
+	p := new(big.Int).SetBytes(keyBinary[21:(21 + (64 + 8*t) + 1)])
+	g := new(big.Int).SetBytes(keyBinary[21+(64+8*t) : (21 + 2*(64+8*t) + 1)])
+	y := new(big.Int).SetBytes(keyBinary[21+2*(64+8*t) : (21 + 3*(64+8*t) + 1)])
+
+	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\n", t, q, p, g, y)
 
 	fmt.Printf("\nDNS: %s\n", keyBinary)
-	return e, n, l
+	return
 }
 
 func main() {
