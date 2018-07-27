@@ -47,12 +47,11 @@ func keyLengthDSA(keyIn string) (length int) {
 	t := keyBinary[0]
 	q := new(big.Int).SetBytes(keyBinary[1:21])
 	p := new(big.Int).SetBytes(keyBinary[21:(21 + (64 + 8*t) + 1)])
-	g := new(big.Int).SetBytes(keyBinary[21+(64+8*t) : (21 + 2*(64+8*t) + 1)])
-	y := new(big.Int).SetBytes(keyBinary[21+2*(64+8*t) : (21 + 3*(64+8*t) + 1)])
+	g := new(big.Int).SetBytes(keyBinary[21+(64+8*t)+1 : (21 + 2*(64+8*t) + 2)])
+	y := new(big.Int).SetBytes(keyBinary[21+2*(64+8*t)+2:])
 
 	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\n", t, q, p, g, y)
 
-	fmt.Printf("\nDNS: %s\n", keyBinary)
 	return
 }
 
