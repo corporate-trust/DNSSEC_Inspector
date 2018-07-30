@@ -9,10 +9,13 @@ Checks:
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"regexp"
@@ -173,6 +176,51 @@ func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
 	return nil
 }
 
+func parseRSA(keyIn string) (e, n, l int) {
+	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
+	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
+	err := keyBinary
+	if err == nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	if keyBinary[0] == 0 {
+		el := (int(keyBinary[1]) << 8) + int(keyBinary[2])
+		e := new(big.Int).SetBytes(keyBinary[3 : el+3])
+		n := new(big.Int).SetBytes(keyBinary[el+3:])
+		l := len(keyBinary[el+3:]) * 8
+		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
+	} else {
+		el := keyBinary[0]
+		e := new(big.Int).SetBytes(keyBinary[1 : el+1])
+		n := new(big.Int).SetBytes(keyBinary[el+1:])
+
+		l := len(keyBinary[el+1:]) * 8
+		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
+	}
+	return e, n, l
+}
+
+func parseDSA(key string) {
+	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
+	base64.StdEncoding.Decode(keyBinary, []byte(key))
+	err := keyBinary
+	if err == nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	t := int(keyBinary[0])
+	q := new(big.Int).SetBytes(keyBinary[1:21])
+	p := new(big.Int).SetBytes(keyBinary[21 : 21+(64+t*8)])
+	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
+	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
+
+	l := len(keyBinary[21:21+(64+t*8)]) * 8
+	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\nl: %d\n", t, q, p, g, y, l)
+	return
+}
+
 /*func extractDSAkey(key string) (t, q, p, g, y) {
 	data := b64.StdDecoding.DecodeToString(key)
 
@@ -244,45 +292,3 @@ func checkKeys(fqdn string, out *Out) {
 		}
 	}
 }
-
-/*
-package main
-
-import (
-	"encoding/base64"
-	//"strconv"
-	"fmt"
-)
-
-func keyLength(keyIn string) (e, n, l int) {
-	// Base64 encoding
-	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
-	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
-
-	err := keyBinary
-	if err == nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	if keyBinary[0] == 0 {
-		e := keyBinary[1:3]
-		n := keyBinary[3:]
-		l := len(n) * 8
-		fmt.Printf("e: %s\nn: %s\nl: %d", e, n, l)
-	} else {
-		// requires import "strconv"
-		// e := strconv.ParseInt(keyBinary[1], 2, 64)
-		e := keyBinary[1]
-		n := keyBinary[2:]
-		l := len(n) * 8
-		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
-	}
-	return e, n, l
-}
-
-func main() {
-	keyInput := "AwEAAcPXtQjs85qD8rnBCxGLRcm1Ghc0jWAS8ExiEaKUBK24yp6DpvuqQFevVfFXT3SUcrMw9La9dUHk0ZLFMZTC+irx4+/iaR9UYG6WW7xpWD12l0NotT0Z7GELKk5mCCnWUe72hVolxrvmaMT3J0GcP0FvSqFicuDEjAzYEoGEiYD5"
-	keyLength(keyInput)
-}
-*/
