@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"encoding"
 
 	"github.com/miekg/dns"
 )
@@ -20,6 +21,7 @@ const resultsPath string = "./dnssec.json"
 
 type Out struct {
 	DNSSEC          bool  `json:"dnssec"`
+	Signature		bool  `json:"signature"`
 	NSEC3           bool  `json:"nsec3"`
 	Used            bool  `json:"used"`
 	KeyCount        int   `json:"keycount"`
@@ -50,7 +52,7 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
 	c := new(dns.Client)
 	c.Net = "udp"
-	k.dns.Msg)
+	k.dns.Msg())
 	k.tion(dns.Fqdn(fqdn), rrType)
 	k.tative = true
 	k.onDesired = true
@@ -59,6 +61,34 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 		r = nil
 	}
 	return *r
+}
+
+// Checks the given domain on existance of
+func checkExistance(fqdn string, out *Out) {
+	r := dnssecQuery(fqdn, dns.TypeRRSIG)
+	if r == nil {
+		out.DNSSEC = false
+		out.Signature = false
+	}
+	rr := dnssecQuery(fqdn, dns.TypeA)
+	if rr == nil {
+		// no dns record
+		// Check lens of r == rr
+		// if < then unsigned 
+	}
+	return
+}
+
+func checkValidation(fqdn string, r Msg, out *Out) (bool) {
+	// Validate Answer Section
+	// Validate Authority Section
+	// Validate Additional Section
+	return true
+}
+
+func extractDSAkey(key string) (t, q, p, g, y) {
+	data := b64.StdDecoding.DecodeToString(key)
+	
 }
 
 // Checks if the DNSKEY uses accepted (?) algorithms
@@ -112,7 +142,7 @@ func checkKeys(fqdn string, out *Out) {
 			case 10: // RSA/SHA-512
 				// check key length
 				// perfectly fine
-				k.Hash = "SHA-512"
+				k.Hash = "SHA-512"v
 			case 13: // ECDSA P-256 (128bit sec) with SHA-256
 				// SHA-256 is perfectly fine
 				k.Hash = "None"
