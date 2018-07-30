@@ -31,9 +31,9 @@ func parseRSA(keyIn string) (e, n, l int) {
 	return e, n, l
 }
 
-func parseDSA(keyIn string) (length int) {
-	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
-	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
+func parseDSA(key string) {
+	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
+	base64.StdEncoding.Decode(keyBinary, []byte(key))
 	err := keyBinary
 	if err == nil {
 		fmt.Println("Error:", err)
