@@ -25,6 +25,7 @@ func parseRSA(keyIn string) (e, n, l int) {
 		el := keyBinary[0]
 		e := new(big.Int).SetBytes(keyBinary[1 : el+1])
 		n := new(big.Int).SetBytes(keyBinary[el+1:])
+
 		l := len(keyBinary[el+1:]) * 8
 		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
 	}
@@ -45,7 +46,8 @@ func parseDSA(key string) {
 	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
 	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
 
-	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\n", t, q, p, g, y)
+	l := len(keyBinary[21:21+(64+t*8)]) * 8
+	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\nl: %d\n", t, q, p, g, y, l)
 	return
 }
 
