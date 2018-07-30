@@ -10,10 +10,11 @@ package main
 
 import (
 	"os"
+	"fmt"
 	"regexp"
 	"strconv"
 	"encoding"
-
+	"math/big"
 	"github.com/miekg/dns"
 )
 
