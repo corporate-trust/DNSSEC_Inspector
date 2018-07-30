@@ -21,7 +21,7 @@ const resultsPath string = "./dnssec.json"
 
 type Out struct {
 	DNSSEC          bool  `json:"dnssec"`
-	Signature		bool	`json:"signature"`
+	Signature		bool  `json:"signature"`
 	NSEC3           bool  `json:"nsec3"`
 	Used            bool  `json:"used"`
 	KeyCount        int   `json:"keycount"`
