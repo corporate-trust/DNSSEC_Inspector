@@ -6,11 +6,6 @@ import (
 	"math/big"
 )
 
-func byteToInt(byteIn []byte, specByte int) (intOut int) {
-	intOut = (int(byteIn[specByte]) << 8) + int(byteIn[specByte+1])
-	return intOut
-}
-
 func keyLengthRSA(keyIn string) (e, n, l int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
