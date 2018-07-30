@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-func keyLengthRSA(keyIn string) (e, n, l int) {
+func parseRSA(keyIn string) (e, n, l int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
 	err := keyBinary
@@ -31,7 +31,7 @@ func keyLengthRSA(keyIn string) (e, n, l int) {
 	return e, n, l
 }
 
-func keyLengthDSA(keyIn string) (length int) {
+func parseDSA(keyIn string) (length int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
 	err := keyBinary
@@ -52,6 +52,6 @@ func keyLengthDSA(keyIn string) (length int) {
 func main() {
 	keyInputRSA := "AwEAAcPXtQjs85qD8rnBCxGLRcm1Ghc0jWAS8ExiEaKUBK24yp6DpvuqQFevVfFXT3SUcrMw9La9dUHk0ZLFMZTC+irx4+/iaR9UYG6WW7xpWD12l0NotT0Z7GELKk5mCCnWUe72hVolxrvmaMT3J0GcP0FvSqFicuDEjAzYEoGEiYD5"
 	keyInputDSA := "BOPdJjdc/ZQWCVA/ONz6LjvugMnB2KKL3F1D2i9GdrpircWRKS2DfRn5KiMM2HQXBHv0ZdkFs/tmjg7rYxrN+bzBNrlwfU5RMjioi67PthD07EHbZjwoZ5sKC2BZ/M596hygfx5JAvbIWBQVF+ztiuCnWCkbGvVXwsmE+odINCur+o+EjA9hF06LqTviUJKqTxisQO5OHM/0ufNenzIbijJPTXbUcF3vW+CMlX+AUPLSag7YnhWaEu7BLCKfg3vJVw9mtaN2W3oWPRdebGUf/QfyVKXoWD6zDLByCZh4wKvpcwgAsel4bO5LVe7s8qstSxqrwzmvaZ5XYOMZFbN7CXtutiswAkb0pkehIYime6IRkDwWDG+14H5yriRuCDK3m7GvwxMo+ggV0k3Po9LD5wWSIi1N"
-	keyLengthRSA(keyInputRSA)
-	keyLengthDSA(keyInputDSA)
+	parseRSA(keyInputRSA)
+	parseDSA(keyInputDSA)
 }
