@@ -11,7 +11,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"flag"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,77 +30,61 @@ var (
 	Error   *log.Logger
 )
 
-type validationError struct {
-	rr  dns.RR
-	msg string
+type Out struct {
+	DNSSEC          bool   `json:"dnssec"`
+	Signatures      bool   `json:"signatures"`
+	Validates       bool   `json:"validates"`
+	ValidationError string `json:"validationError"`
+	NSEC3           bool   `json:"nsec3"`
+	NSEC3iter       int    `json:"nsec3iter`
+	Used            bool   `json:"used"`
+	KeyCount        int    `json:"keycount"`
+	runningRollover bool   `json:"runningRollover"`
+	Keys            []Key  `json:"keys",omitempty`
 }
 
-func (e *validationError) Error() string {
-	return fmt.Sprintf("%v - %v", e.rr.Header().String(), e.msg)
-}
-
-func initLog(verbose bool) {
-	if verbose {
-		Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
-	}
-	Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+type Key struct {
+	Type      string `json:"type"`
+	Hash      string `json:"hash"`
+	HComment  string `json:"hComment"`
+	HUntil    string `json:"hUntil"`
+	Alg       string `json:"alg"`
+	keyLength int    `json:"keyLength"`
+	AComment  string `json:"aComment"`
+	AUntil    string `json:"aUntil"`
 }
 
 func main() {
-	// Call as command line tool with -standalone
-	standalonePtr := flag.Bool("standalone", false, "")
-	fqdnPtr := flag.String("fqdn", "", "Domainname to test DNSSEC for")
-	outfilePtr := flag.String("o", "", "Filepath to write results to")
-	verbosePtr := flag.Bool("v", false, "Show warnings on toggle")
-	flag.Parse()
-	initLog(*verbosePtr)
-	var path string
-	var fqdn string
-	res := Result{}
-	if *standalonePtr {
-		if *outfilePtr == "" {
-			path = *outfilePtr
+	internalID := os.Args[1]
+	reportID := os.Args[2]
+	hostname := os.Args[3]
+	out := Out{}
+	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Error = log.New(os.Stderr, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+	checkExistence(os.Args[3], &out)
+	if out.DNSSEC {
+		checkNSEC3Existence(os.Args[3], &out)
+		var err error
+		if out.Validates, err = checkValidation(os.Args[3]); err != nil {
+			out.ValidationError = err.Error()
 		}
-		fqdn = *fqdnPtr
-	} else {
-		internalID := os.Args[1]
-		reportID := os.Args[2]
-		fqdn = os.Args[3]
-		path = "./" + internalID + "_" + reportID + "_" + fqdn + ".json"
 	}
-	checkExistence(fqdn, &res)
-	if res.DNSSEC {
-		checkNSEC3Existence(fqdn, &res)
-		checkValidation(fqdn, &res)
-		// Call checkKey()
-	}
-	d, _ := json.MarshalIndent(res, "", "\t")
-	if *standalonePtr {
-		if *outfilePtr == "" {
-			fmt.Printf("%s\n", d)
-		} else if *outfilePtr != "" {
-			res.outputFile(*outfilePtr)
-		}
-	} else {
-		res.outputFile(path)
+	d, _ := json.Marshal(out)
+	// Write output file
+	path := "./" + internalID + "_" + reportID + "_" + hostname + ".json"
+	if err := ioutil.WriteFile(path, d, 0644); err != nil {
+		Error.Printf("Cannot write file: %s", err.Error())
 	}
 	return
 }
 
-func (res *Result) outputFile(filepath string) {
-	d, _ := json.Marshal(res)
-	if err := ioutil.WriteFile(filepath, d, 0644); err != nil {
-		Error.Printf("Cannot write file: %s", err.Error())
-	}
-}
-
+// TODO: Throw error handling
 func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
 	c := new(dns.Client)
 	c.Net = "udp"
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
-	m.SetEdns0(4096, true)
 	m.RecursionDesired = true
 	r, _, _ := c.Exchange(m, net.JoinHostPort(config.Servers[0], config.Port))
 	if r == nil || r.Rcode != dns.RcodeSuccess {
@@ -111,15 +95,16 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 
 // Checks the existance of RRSIG rescource records
 // on given domain
-func checkExistence(fqdn string, res *Result) bool {
+func checkExistence(fqdn string, out *Out) bool {
 	r := dnssecQuery(fqdn, dns.TypeRRSIG)
 	if r.Answer == nil {
-		res.DNSSEC = false
-		res.Signatures = false
+		out.DNSSEC = false
+		out.Signatures = false
 		return false
+	} else {
+		out.DNSSEC = true
+		out.Signatures = true
 	}
-	res.DNSSEC = true
-	res.Signatures = true
 	return true
 }
 
@@ -128,7 +113,7 @@ If an NSEC3PARAM RR is present at the apex of a zone with a Flags field
 value of zero, then thre MUST be an NSEC3 RR using the same hash algorithm,
 iterations, and salt parameters …
 */
-func checkNSEC3Existence(fqdn string, out *Result) bool {
+func checkNSEC3Existence(fqdn string, out *Out) bool {
 	r := dnssecQuery(fqdn, dns.TypeNSEC3PARAM)
 	if len(r.Answer) > 0 {
 		for _, i := range r.Answer {
@@ -143,43 +128,27 @@ func checkNSEC3Existence(fqdn string, out *Result) bool {
 	return false
 }
 
-/* Checks if the RRSIG records for fqdn can be validated */
-func checkValidation(fqdn string, out *Result) bool {
+func checkValidation(fqdn string) (bool, error) {
 	// get RRSIG RR to check
 	r := dnssecQuery(fqdn, dns.TypeANY)
+	var ret bool
 	var err error
-	if out.ValidatesAnwer, err = checkSection(fqdn, r.Answer, "Answer"); err != nil {
-		out.ValidationErrorAnwer = err.Error()
-	}
-	if out.ValidatesNs, err = checkSection(fqdn, r.Ns, "Ns"); err != nil {
-		out.ValidationErrorNs = err.Error()
-	}
-	if out.ValidatesExtra, err = checkSection(fqdn, r.Extra, "Extra"); err != nil {
-		out.ValidationErrorExtra = err.Error()
-	}
-	if out.ValidatesAnwer && out.ValidatesNs && out.ValidatesExtra {
-		out.Validation = true
-	} else {
-		out.Validation = false
-	}
-	return out.Validation
-}
-
-func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
-	ret := true
-	for _, rr := range r {
-		if rr.Header().Rrtype == dns.TypeRRSIG && rr.(*dns.RRSIG).TypeCovered != dns.TypeDNSKEY { // Filter on RRSIG records
+	for _, rr := range r.Answer {
+		if rr.Header().Rrtype == dns.TypeRRSIG { // Filter on RRSIG records
 			if !rr.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
-				return false, &validationError{rr, "The validity period expired"}
-			}
-			key := getKeyForRRSIG(fqdn, rr)
-			records := getRRsCoveredByRRSIG(fqdn, rr, section)
-			if err := rr.(*dns.RRSIG).Verify(key, records); err != nil {
-				return false, &validationError{rr, "Cannot validate the siganture cryptographically"}
+				return false, errors.New("The validity period expired")
+			} else {
+				key := getKeyForRRSIG(fqdn, rr)
+				records := getRRsCoveredByRRSIG(fqdn, rr, "answer")
+				if err := rr.(*dns.RRSIG).Verify(key, records); err == nil {
+					ret, err = true, nil
+				} else {
+					return false, errors.New("Cannot validate the siganture cryptographically")
+				}
 			}
 		}
 	}
-	return ret, nil
+	return ret, err
 }
 
 func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
@@ -196,23 +165,15 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 
 func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
 	m := dnssecQuery(fqdn, r.(*dns.RRSIG).TypeCovered)
-	var ret []dns.RR
 	switch section {
-	case "Answer":
-		ret = m.Answer
-	case "Ns":
-		ret = m.Ns
-	case "Extra":
-		ret = m.Extra
+	case "answer":
+		return m.Answer
+	case "authority":
+		return m.Ns
+	case "additional":
+		return m.Extra
 	}
-	for i, r := range ret {
-		if _, ok := r.(*dns.RRSIG); ok {
-			ret[i] = ret[len(ret)-1]
-			ret[len(ret)-1] = nil
-			ret = ret[:len(ret)-1]
-		}
-	}
-	return ret
+	return nil
 }
 
 func parseRSA(keyIn string) (big.Int, big.Int, int) {
@@ -257,8 +218,8 @@ func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 	return *q, *p, *g, *y, l
 }
 
-// Checks the DNSKEY records associated with the fqdn at the authorative server
-func checkKeys(fqdn string, out *Result) {
+// Checks for accepted DNSKEY algorithms, hash algorithms and key length
+func checkKeys(fqdn string, out *Out) {
 	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
 	for _, i := range r.Answer {
 		x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
