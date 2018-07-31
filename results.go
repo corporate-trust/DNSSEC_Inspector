@@ -1,7 +1,7 @@
 package main
 
 //
-type Out struct {
+type Result struct {
 	DNSSEC               bool   `json:"dnssec"`
 	Signatures           bool   `json:"signatures"`
 	Validation           bool   `json:"validation"`
@@ -31,6 +31,6 @@ type Key struct {
 	AUntil    string `json:"aUntil"`
 }
 
-func (o *Out) generateFindings() {
+func (o *Result) generateFindings() {
 
 }

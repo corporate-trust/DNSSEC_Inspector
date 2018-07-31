@@ -11,6 +11,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -29,25 +30,68 @@ var (
 	Error   *log.Logger
 )
 
-func main() {
-	internalID := os.Args[1]
-	reportID := os.Args[2]
-	hostname := os.Args[3]
-	out := Out{}
-	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Error = log.New(os.Stderr, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
-	checkExistence(os.Args[3], &out)
-	if out.DNSSEC {
-		checkNSEC3Existence(os.Args[3], &out)
-		checkValidation(os.Args[3], &out)
+type validationError struct {
+	rr  dns.RR
+	msg string
+}
+
+func (e *validationError) Error() string {
+	return fmt.Sprintf("%v - %v", e.rr.Header().String(), e.msg)
+}
+
+func initLog(verbose bool) {
+	if verbose {
+		Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
 	}
-	// Write output file
-	d, _ := json.Marshal(out)
-	path := "./" + internalID + "_" + reportID + "_" + hostname + ".json"
-	if err := ioutil.WriteFile(path, d, 0644); err != nil {
-		Error.Printf("Cannot write file: %s", err.Error())
+	Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+}
+
+func main() {
+	// Call as command line tool with -standalone
+	standalonePtr := flag.Bool("standalone", false, "")
+	fqdnPtr := flag.String("fqdn", "", "Domainname to test DNSSEC for")
+	outfilePtr := flag.String("o", "", "Filepath to write results to")
+	verbosePtr := flag.Bool("v", false, "Show warnings on toggle")
+	flag.Parse()
+	initLog(*verbosePtr)
+	var path string
+	var fqdn string
+	res := Result{}
+	if *standalonePtr {
+		if *outfilePtr == "" {
+			path = *outfilePtr
+		}
+		fqdn = *fqdnPtr
+	} else {
+		internalID := os.Args[1]
+		reportID := os.Args[2]
+		fqdn = os.Args[3]
+		path = "./" + internalID + "_" + reportID + "_" + fqdn + ".json"
+	}
+	checkExistence(fqdn, &res)
+	if res.DNSSEC {
+		checkNSEC3Existence(fqdn, &res)
+		checkValidation(fqdn, &res)
+		// Call checkKey()
+	}
+	d, _ := json.MarshalIndent(res, "", "\t")
+	if *standalonePtr {
+		if *outfilePtr == "" {
+			fmt.Printf("%s\n", d)
+		} else if *outfilePtr != "" {
+			res.outputFile(*outfilePtr)
+		}
+	} else {
+		res.outputFile(path)
 	}
 	return
+}
+
+func (res *Result) outputFile(filepath string) {
+	d, _ := json.Marshal(res)
+	if err := ioutil.WriteFile(filepath, d, 0644); err != nil {
+		Error.Printf("Cannot write file: %s", err.Error())
+	}
 }
 
 func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
@@ -67,15 +111,15 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 
 // Checks the existance of RRSIG rescource records
 // on given domain
-func checkExistence(fqdn string, out *Out) bool {
+func checkExistence(fqdn string, res *Result) bool {
 	r := dnssecQuery(fqdn, dns.TypeRRSIG)
 	if r.Answer == nil {
-		out.DNSSEC = false
-		out.Signatures = false
+		res.DNSSEC = false
+		res.Signatures = false
 		return false
 	} else {
-		out.DNSSEC = true
-		out.Signatures = true
+		res.DNSSEC = true
+		res.Signatures = true
 	}
 	return true
 }
@@ -85,7 +129,7 @@ If an NSEC3PARAM RR is present at the apex of a zone with a Flags field
 value of zero, then thre MUST be an NSEC3 RR using the same hash algorithm,
 iterations, and salt parameters …
 */
-func checkNSEC3Existence(fqdn string, out *Out) bool {
+func checkNSEC3Existence(fqdn string, out *Result) bool {
 	r := dnssecQuery(fqdn, dns.TypeNSEC3PARAM)
 	if len(r.Answer) > 0 {
 		for _, i := range r.Answer {
@@ -100,7 +144,8 @@ func checkNSEC3Existence(fqdn string, out *Out) bool {
 	return false
 }
 
-func checkValidation(fqdn string, out *Out) bool {
+/* Checks if the RRSIG records for fqdn can be validated */
+func checkValidation(fqdn string, out *Result) bool {
 	// get RRSIG RR to check
 	r := dnssecQuery(fqdn, dns.TypeANY)
 	var err error
@@ -119,15 +164,6 @@ func checkValidation(fqdn string, out *Out) bool {
 		out.Validation = false
 	}
 	return out.Validation
-}
-
-type validationError struct {
-	rr  dns.RR
-	msg string
-}
-
-func (e *validationError) Error() string {
-	return fmt.Sprintf("%v - %v", e.rr.Header().String(), e.msg)
 }
 
 func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
@@ -189,7 +225,6 @@ func parseRSA(keyIn string) (e, n, l int) {
 		fmt.Println("Error:", err)
 		return
 	}
-
 	if keyBinary[0] == 0 {
 		el := (int(keyBinary[1]) << 8) + int(keyBinary[2])
 		e := new(big.Int).SetBytes(keyBinary[3 : el+3])
@@ -200,7 +235,6 @@ func parseRSA(keyIn string) (e, n, l int) {
 		el := keyBinary[0]
 		e := new(big.Int).SetBytes(keyBinary[1 : el+1])
 		n := new(big.Int).SetBytes(keyBinary[el+1:])
-
 		l := len(keyBinary[el+1:]) * 8
 		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
 	}
@@ -241,7 +275,7 @@ func parseDSA(key string) {
 //  - RSA min 3072 bit ab 2023
 //  - DSA min 2000 bit bis 2022
 //	- ECDSA min 250 bis 2022
-func checkKeys(fqdn string, out *Out) {
+func checkKeys(fqdn string, out *Result) {
 	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
 	for _, i := range r.Answer {
 		x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)

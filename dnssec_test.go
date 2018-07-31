@@ -24,3 +24,8 @@ func TestOutputANYwithDNSSECrrs(*testing.T) {
 	}
 	fmt.Printf("\n")
 }
+
+func TestBundDE(*testing.T) {
+	fqdn := "bsi.de"
+	return
+}
