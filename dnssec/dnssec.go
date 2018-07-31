@@ -11,7 +11,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,26 +29,33 @@ var (
 	Error   *log.Logger
 )
 
+// results struct
 type Out struct {
-	DNSSEC          bool   `json:"dnssec"`
-	Signatures      bool   `json:"signatures"`
-	Validates       bool   `json:"validates"`
-	ValidationError string `json:"validationError"`
-	NSEC3           bool   `json:"nsec3"`
-	NSEC3iter       int    `json:"nsec3iter`
-	Used            bool   `json:"used"`
-	KeyCount        int    `json:"keycount"`
-	runningRollover bool   `json:"runningRollover"`
-	Keys            []Key  `json:"keys",omitempty`
+	DNSSEC               bool   `json:"dnssec"`
+	Signatures           bool   `json:"signatures"`
+	Validation           bool   `json:"validation"`
+	ValidatesAnwer       bool   `json:"validatesAnwer"`
+	ValidatesNs          bool   `json:"validatesNs"`
+	ValidatesExtra       bool   `json:"validatesExtra"`
+	ValidationErrorAnwer string `json:"validationErrorAnwer"`
+	ValidationErrorNs    string `json:"validationErrorNs"`
+	ValidationErrorExtra string `json:"validationErrorExtra"`
+	NSEC3                bool   `json:"nsec3"`
+	NSEC3iter            int    `json:"nsec3iter`
+	Used                 bool   `json:"used"`
+	KeyCount             int    `json:"keycount"`
+	runningRollover      bool   `json:"runningRollover"`
+	Keys                 []Key  `json:"keys",omitempty`
 }
 
+// Key struct
 type Key struct {
 	Type      string `json:"type"`
 	Hash      string `json:"hash"`
 	HComment  string `json:"hComment"`
 	HUntil    string `json:"hUntil"`
 	Alg       string `json:"alg"`
-	keyLength int32  `json:"keyLength"`
+	keyLength int32  //`json:"keyLength"`
 	AComment  string `json:"aComment"`
 	AUntil    string `json:"aUntil"`
 }
@@ -64,13 +70,10 @@ func main() {
 	checkExistence(os.Args[3], &out)
 	if out.DNSSEC {
 		checkNSEC3Existence(os.Args[3], &out)
-		var err error
-		if out.Validates, err = checkValidation(os.Args[3]); err != nil {
-			out.ValidationError = err.Error()
-		}
+		checkValidation(os.Args[3], &out)
 	}
-	d, _ := json.Marshal(out)
 	// Write output file
+	d, _ := json.Marshal(out)
 	path := "./" + internalID + "_" + reportID + "_" + hostname + ".json"
 	if err := ioutil.WriteFile(path, d, 0644); err != nil {
 		Error.Printf("Cannot write file: %s", err.Error())
@@ -78,13 +81,13 @@ func main() {
 	return
 }
 
-// TODO: Throw error handling
 func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
 	c := new(dns.Client)
 	c.Net = "udp"
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
+	m.SetEdns0(4096, true)
 	m.RecursionDesired = true
 	r, _, _ := c.Exchange(m, net.JoinHostPort(config.Servers[0], config.Port))
 	if r == nil || r.Rcode != dns.RcodeSuccess {
@@ -128,27 +131,52 @@ func checkNSEC3Existence(fqdn string, out *Out) bool {
 	return false
 }
 
-func checkValidation(fqdn string) (bool, error) {
+func checkValidation(fqdn string, out *Out) bool {
 	// get RRSIG RR to check
 	r := dnssecQuery(fqdn, dns.TypeANY)
-	var ret bool
 	var err error
-	for _, rr := range r.Answer {
+	if out.ValidatesAnwer, err = checkSection(fqdn, r.Answer, "Answer"); err != nil {
+		out.ValidationErrorAnwer = err.Error()
+	}
+	if out.ValidatesNs, err = checkSection(fqdn, r.Ns, "Ns"); err != nil {
+		out.ValidationErrorNs = err.Error()
+	}
+	if out.ValidatesExtra, err = checkSection(fqdn, r.Extra, "Extra"); err != nil {
+		out.ValidationErrorExtra = err.Error()
+	}
+	if out.ValidatesAnwer && out.ValidatesNs && out.ValidatesExtra {
+		out.Validation = true
+	} else {
+		out.Validation = false
+	}
+	return out.Validation
+}
+
+type validationError struct {
+	rr  dns.RR
+	msg string
+}
+
+func (e *validationError) Error() string {
+	return fmt.Sprintf("%v - %v", e.rr.Header().String(), e.msg)
+}
+
+func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
+	ret := true
+	for _, rr := range r {
 		if rr.Header().Rrtype == dns.TypeRRSIG { // Filter on RRSIG records
 			if !rr.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
-				return false, errors.New("The validity period expired")
+				return false, &validationError{rr, "The validity period expired"}
 			} else {
 				key := getKeyForRRSIG(fqdn, rr)
-				records := getRRsCoveredByRRSIG(fqdn, rr, "answer")
-				if err := rr.(*dns.RRSIG).Verify(key, records); err == nil {
-					ret, err = true, nil
-				} else {
-					return false, errors.New("Cannot validate the siganture cryptographically")
+				records := getRRsCoveredByRRSIG(fqdn, rr, section)
+				if err := rr.(*dns.RRSIG).Verify(key, records); err != nil {
+					return false, &validationError{rr, "Cannot validate the siganture cryptographically"}
 				}
 			}
 		}
 	}
-	return ret, err
+	return ret, nil
 }
 
 func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
@@ -166,11 +194,11 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
 	m := dnssecQuery(fqdn, r.(*dns.RRSIG).TypeCovered)
 	switch section {
-	case "answer":
+	case "Answer":
 		return m.Answer
-	case "authority":
+	case "Ns":
 		return m.Ns
-	case "additional":
+	case "Extra":
 		return m.Extra
 	}
 	return nil
