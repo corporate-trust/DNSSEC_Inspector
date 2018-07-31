@@ -9,12 +9,13 @@ Checks:
 package main
 
 import (
-	"os"
+	"encoding/base64"
 	"fmt"
+	"math/big"
+	"os"
 	"regexp"
 	"strconv"
-	"encoding"
-	"math/big"
+
 	"github.com/miekg/dns"
 )
 
@@ -22,7 +23,7 @@ const resultsPath string = "./dnssec.json"
 
 type Out struct {
 	DNSSEC          bool  `json:"dnssec"`
-	Signature		bool  `json:"signature"`
+	Signature       bool  `json:"signature"`
 	NSEC3           bool  `json:"nsec3"`
 	Used            bool  `json:"used"`
 	KeyCount        int   `json:"keycount"`
@@ -48,6 +49,7 @@ func main() {
 	out := Out()
 	checkKeys(os.Args[1], &out)
 }
+
 // TODO: Throw error handling
 func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
@@ -75,12 +77,12 @@ func checkExistance(fqdn string, out *Out) {
 	if rr == nil {
 		// no dns record
 		// Check lens of r == rr
-		// if < then unsigned 
+		// if < then unsigned
 	}
 	return
 }
 
-func checkValidation(fqdn string, r Msg, out *Out) (bool) {
+func checkValidation(fqdn string, r Msg, out *Out) bool {
 	// Validate Answer Section
 	// Validate Authority Section
 	// Validate Additional Section
@@ -126,7 +128,8 @@ func parseDSA(key string) {
 	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
 	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
 
-	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\n", t, q, p, g, y)
+	l := len(keyBinary[21:21+(64+t*8)]) * 8
+	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\nl: %d\n", t, q, p, g, y, l)
 	return
 }
 
