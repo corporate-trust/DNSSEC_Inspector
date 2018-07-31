@@ -26,7 +26,7 @@ type Key struct {
 	HComment  string `json:"hComment"`
 	HUntil    string `json:"hUntil"`
 	Alg       string `json:"alg"`
-	keyLength int    //`json:"keyLength"`
+	KeyLength int    `json:"keyLength"`
 	AComment  string `json:"aComment"`
 	AUntil    string `json:"aUntil"`
 }

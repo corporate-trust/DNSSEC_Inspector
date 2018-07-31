@@ -1,11 +1,3 @@
-/*
-Checks:
-	1. Existence of DNSSEC Rr
-		- DNSKEY, DS, NSEC, NSEC3, NSEC3PARAM, RRSIG
-	2. NSEC3 Existence --> Zone Walking
-	3. Key Strength
-*/
-
 package main
 
 import (
@@ -94,6 +86,9 @@ func (res *Result) outputFile(filepath string) {
 	}
 }
 
+/* Queries for a given fully qualified domain name and a given type of resource
+records. It also includes the DNSSEC relevant matrial.
+*/
 func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
 	c := new(dns.Client)
@@ -166,6 +161,7 @@ func checkValidation(fqdn string, out *Result) bool {
 	return out.Validation
 }
 
+// Checks a given list of RRs (r) from a section on RRSIG RRs and validates them
 func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 	ret := true
 	for _, rr := range r {
@@ -183,6 +179,7 @@ func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 	return ret, nil
 }
 
+// Loads and returns the DNSKEY that made the signature in RRSIG RR
 func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 	m := dnssecQuery(fqdn, dns.TypeDNSKEY)
 	for _, i := range m.Answer {
@@ -195,52 +192,53 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 	return nil
 }
 
-func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
-	m := dnssecQuery(fqdn, r.(*dns.RRSIG).TypeCovered)
-	var ret []dns.RR
+// Builds a list of RRs the given signature rr was made for
+func getRRsCoveredByRRSIG(fqdn string, rr dns.RR, section string) []dns.RR {
+	m := dnssecQuery(fqdn, dns.TypeANY)
+	var x []dns.RR
+	ret := []dns.RR{}
 	switch section {
 	case "Answer":
-		ret = m.Answer
+		x = m.Answer
 	case "Ns":
-		ret = m.Ns
+		x = m.Ns
 	case "Extra":
-		ret = m.Extra
+		x = m.Extra
 	}
-	for i, r := range ret {
-		if _, ok := r.(*dns.RRSIG); ok {
-			ret[i] = ret[len(ret)-1]
-			ret[len(ret)-1] = nil
-			ret = ret[:len(ret)-1]
+	for _, r := range x {
+		if _, ok := r.(*dns.RRSIG); !ok {
+			if r.Header().Rrtype == rr.(*dns.RRSIG).TypeCovered {
+				ret = append(ret, r)
+			}
 		}
 	}
 	return ret
 }
 
+/* Parses a given RSA key as base64 encoded string and returns the
+key material and the bit length of the key as single values (e, n, KeyLength)
+*/
 func parseRSA(keyIn string) (big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
-	err := keyBinary
 	var e, n *big.Int
-	var l int
-	if err == nil {
-		fmt.Println("Error:", err)
+	if keyBinary == nil {
+		Error.Fatalf("Key %s is not base64 readable\n", keyIn)
 	}
 	if keyBinary[0] == 0 {
 		el := (int(keyBinary[1]) << 8) + int(keyBinary[2])
 		e = new(big.Int).SetBytes(keyBinary[3 : el+3])
 		n = new(big.Int).SetBytes(keyBinary[el+3:])
-
-		l = len(keyBinary[el+3:]) * 8
 	} else {
 		el := keyBinary[0]
 		e = new(big.Int).SetBytes(keyBinary[1 : el+1])
 		n = new(big.Int).SetBytes(keyBinary[el+1:])
-
-		l = len(keyBinary[el+1:]) * 8
 	}
-	return *e, *n, l
+	return *e, *n, n.BitLen()
 }
 
+// Parses an given DSA key as base64 encoded string and returns the key material
+// as single values
 func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
 	base64.StdEncoding.Decode(keyBinary, []byte(key))
@@ -274,172 +272,151 @@ func checkKeys(fqdn string, out *Result) {
 			switch x[6] {
 			case "1": // RSA/MD5
 				k.Alg = "RSA"
-				_, _, k.keyLength = parseRSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, k.KeyLength = parseRSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "MD5"
 				k.HComment = "NON-COMPLIANT"
 				k.HUntil = "09.2004"
-
 			case "3": // DSA/SHA-1
 				k.Alg = "DSA"
-				_, _, _, _, k.keyLength = parseDSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, _, _, k.KeyLength = parseDSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "SHA-1"
 				k.HComment = "NON-COMPLIANT"
 				k.HUntil = "10.2015"
-
 			case "5": // RSA/SHA-1
 				k.Alg = "RSA"
-				_, _, k.keyLength = parseRSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, k.KeyLength = parseRSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "SHA-1"
 				k.HComment = "NON-COMPLIANT"
 				k.HUntil = "10.2015"
-
 			case "6": // DSA/SHA-1/NSEC3
 				k.Alg = "DSA"
-				_, _, _, _, k.keyLength = parseDSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, _, _, k.KeyLength = parseDSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "SHA-1"
 				k.HComment = "NON-COMPLIANT"
 				k.HUntil = "10.2015"
-
 			case "7": // RSA/SHA-1/NSEC3
 				k.Alg = "RSA"
-				_, _, k.keyLength = parseRSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, k.KeyLength = parseRSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "SHA-1"
 				k.HComment = "NON-COMPLIANT"
 				k.HUntil = "10.2015"
-
 			case "8": // RSA/SHA-256
 				k.Alg = "RSA"
-				_, _, k.keyLength = parseRSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, k.KeyLength = parseRSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
-
+				k.HUntil = "prognosis impossible (2023+)"
 			case "10": // RSA/SHA-512
 				k.Alg = "RSA"
-				_, _, k.keyLength = parseRSA(x[7])
-				if k.keyLength >= 2048 && k.keyLength < 3072 {
+				_, _, k.KeyLength = parseRSA(x[7])
+				if k.KeyLength >= 2048 && k.KeyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
-				} else if k.keyLength >= 3072 {
+				} else if k.KeyLength >= 3072 {
 					k.AComment = "COMPLIANT"
-					k.AUntil = "prognosis impossible (>2023)"
+					k.AUntil = "prognosis impossible (2023+)"
 				} else {
 					k.AComment = "NON-COMPLIANT"
 					//k.AUntil = ""
 				}
-
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
-
+				k.HUntil = "prognosis impossible (2023+)"
 			case "13": // ECDSA P-256 with SHA-256
 				k.Alg = "ECDSA P-256"
-				k.keyLength = 256
+				k.KeyLength = 256
 				k.AComment = "COMPLIANT"
 				k.AUntil = "2022"
-
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
-
+				k.HUntil = "prognosis impossible (2023+)"
 			case "14": // ECDSA P-384 with SHA-384
 				k.Alg = "ECDSA P-384"
-				k.keyLength = 384
+				k.KeyLength = 384
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (>2023)"
-
+				k.AUntil = "prognosis impossible (2023+)"
 				k.Hash = "SHA-384"
 				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
-
+				k.HUntil = "prognosis impossible (2023+)"
 			case "15": // ED25519 (128bit sec)
 				k.Alg = "Ed25519"
-				k.keyLength = 256
+				k.KeyLength = 256
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (>2023)"
-
+				k.AUntil = "prognosis impossible (2023+)"
 				k.Hash = "SHA-512"
 				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
-
+				k.HUntil = "prognosis impossible (2023+)"
 			case "16": // ED448
 				k.Alg = "Ed25519"
-				k.keyLength = 488
+				k.KeyLength = 488
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (>2023)"
-
+				k.AUntil = "prognosis impossible (2023+)"
 				k.Hash = "SHAKE-256"
 				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
-
+				k.HUntil = "prognosis impossible (2023+)"
 			default:
 			}
+			out.Keys = append(out.Keys, *k)
 		}
 	}
 }

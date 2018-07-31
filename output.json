@@ -1,1 +1,0 @@
-{"dnssec":true,"signatures":true,"validation":true,"validatesAnwer":true,"validatesNs":true,"validatesExtra":true,"validationErrorAnwer":"","validationErrorNs":"","validationErrorExtra":"","nsec3":true,"NSEC3iter":10,"used":false,"keycount":0,"keys":null}
