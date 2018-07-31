@@ -176,34 +176,32 @@ func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
 	return nil
 }
 
-func parseRSA(keyIn string) (l int) {
+func parseRSA(keyIn string) (big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
 	err := keyBinary
+	var e, n *big.Int
+	var l int
 	if err == nil {
 		fmt.Println("Error:", err)
-		return
 	}
-
 	if keyBinary[0] == 0 {
 		el := (int(keyBinary[1]) << 8) + int(keyBinary[2])
-		e := new(big.Int).SetBytes(keyBinary[3 : el+3])
-		n := new(big.Int).SetBytes(keyBinary[el+3:])
+		e = new(big.Int).SetBytes(keyBinary[3 : el+3])
+		n = new(big.Int).SetBytes(keyBinary[el+3:])
 
-		l := len(keyBinary[el+3:]) * 8
-		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
+		l = len(keyBinary[el+3:]) * 8
 	} else {
 		el := keyBinary[0]
-		e := new(big.Int).SetBytes(keyBinary[1 : el+1])
-		n := new(big.Int).SetBytes(keyBinary[el+1:])
+		e = new(big.Int).SetBytes(keyBinary[1 : el+1])
+		n = new(big.Int).SetBytes(keyBinary[el+1:])
 
-		l := len(keyBinary[el+1:]) * 8
-		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
+		l = len(keyBinary[el+1:]) * 8
 	}
-	return l
+	return *e, *n, l
 }
 
-func parseDSA(key string) int {
+func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
 	base64.StdEncoding.Decode(keyBinary, []byte(key))
 	err := keyBinary
@@ -216,8 +214,8 @@ func parseDSA(key string) int {
 	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
 	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
 	l := p.BitLen()
-	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\nl: %d\n", t, q, p, g, y, l)
-	return l
+
+	return *q, *p, *g, *y, l
 }
 
 // Checks for accepted DNSKEY algorithms, hash algorithms and key length
@@ -236,7 +234,7 @@ func checkKeys(fqdn string, out *Out) {
 			switch x[6] {
 			case "1": // RSA/MD5
 				k.Alg = "RSA"
-				k.keyLength = parseRSA(x[7])
+				_, _, k.keyLength = parseRSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
@@ -254,7 +252,7 @@ func checkKeys(fqdn string, out *Out) {
 
 			case "3": // DSA/SHA-1
 				k.Alg = "DSA"
-				k.keyLength = parseDSA(x[7])
+				_, _, _, _, k.keyLength = parseDSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
@@ -272,7 +270,7 @@ func checkKeys(fqdn string, out *Out) {
 
 			case "5": // RSA/SHA-1
 				k.Alg = "RSA"
-				k.keyLength = parseRSA(x[7])
+				_, _, k.keyLength = parseRSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
@@ -290,7 +288,7 @@ func checkKeys(fqdn string, out *Out) {
 
 			case "6": // DSA/SHA-1/NSEC3
 				k.Alg = "DSA"
-				k.keyLength = parseDSA(x[7])
+				_, _, _, _, k.keyLength = parseDSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
@@ -308,7 +306,7 @@ func checkKeys(fqdn string, out *Out) {
 
 			case "7": // RSA/SHA-1/NSEC3
 				k.Alg = "RSA"
-				k.keyLength = parseRSA(x[7])
+				_, _, k.keyLength = parseRSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
@@ -326,7 +324,7 @@ func checkKeys(fqdn string, out *Out) {
 
 			case "8": // RSA/SHA-256
 				k.Alg = "RSA"
-				k.keyLength = parseRSA(x[7])
+				_, _, k.keyLength = parseRSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
@@ -344,7 +342,7 @@ func checkKeys(fqdn string, out *Out) {
 
 			case "10": // RSA/SHA-512
 				k.Alg = "RSA"
-				k.keyLength = parseRSA(x[7])
+				_, _, k.keyLength = parseRSA(x[7])
 				if k.keyLength >= 2048 && k.keyLength < 3072 {
 					k.AComment = "COMPLIANT"
 					k.AUntil = "2022"
