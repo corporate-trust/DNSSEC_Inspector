@@ -128,6 +128,8 @@ func parseDSA(key string) {
 	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
 	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
 
+	// https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/Publikationen/TechnischeRichtlinien/TR02102/BSI-TR-02102.pdf?__blob=publicationFile&v=8
+	// Seite 11, Absatz S
 	l := len(keyBinary[21:21+(64+t*8)]) * 8
 	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\nl: %d\n", t, q, p, g, y, l)
 	return
@@ -139,9 +141,8 @@ func parseDSA(key string) {
 //  2. RSA/SHA-1 (IETF accepted alternative)
 //  -  RSA/MD5 (IETF shouldnt be considered)
 //  Key Length: BSI TR-02102-2
-//  - RSA min 2048 bit bis 2022
-//  - RSA min 3072 bit ab 2023
-//  - DSA min 2000 bit bis 2022
+//  - RSA min 2048 bit bis 2022 - bzw. min 3072 bit ab 2023
+//  - DSA min 2048 bit bis 2022 - bzw. min 3072 bit ab 2023
 //	- ECDSA min 250 bis 2022
 
 func checkKeys(fqdn string, out *Out) {
