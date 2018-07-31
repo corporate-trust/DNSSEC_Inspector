@@ -72,7 +72,7 @@ func main() {
 	if res.DNSSEC {
 		checkNSEC3Existence(fqdn, &res)
 		checkValidation(fqdn, &res)
-		// Call checkKey()
+		checkKeys(fqdn, &res)
 	}
 	d, _ := json.MarshalIndent(res, "", "\t")
 	if *standalonePtr {
@@ -123,11 +123,12 @@ func checkExistence(fqdn string, res *Result) bool {
 	return true
 }
 
-/* RFC5155#Section-3
+/*
+Checks the existance of NSEC3 records.
+RFC5155#Section-3
 If an NSEC3PARAM RR is present at the apex of a zone with a Flags field
 value of zero, then thre MUST be an NSEC3 RR using the same hash algorithm,
-iterations, and salt parameters …
-*/
+iterations, and salt parameters … */
 func checkNSEC3Existence(fqdn string, out *Result) bool {
 	r := dnssecQuery(fqdn, dns.TypeNSEC3PARAM)
 	if len(r.Answer) > 0 {
