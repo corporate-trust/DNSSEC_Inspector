@@ -176,7 +176,7 @@ func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
 	return nil
 }
 
-func parseRSA(keyIn string) (e, n, l int) {
+func parseRSA(keyIn string) (l int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
 	err := keyBinary
@@ -189,6 +189,7 @@ func parseRSA(keyIn string) (e, n, l int) {
 		el := (int(keyBinary[1]) << 8) + int(keyBinary[2])
 		e := new(big.Int).SetBytes(keyBinary[3 : el+3])
 		n := new(big.Int).SetBytes(keyBinary[el+3:])
+
 		l := len(keyBinary[el+3:]) * 8
 		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
 	} else {
@@ -199,32 +200,25 @@ func parseRSA(keyIn string) (e, n, l int) {
 		l := len(keyBinary[el+1:]) * 8
 		fmt.Printf("e: %s\nn: %s\nl: %d\n", e, n, l)
 	}
-	return e, n, l
+	return l
 }
 
-func parseDSA(key string) {
+func parseDSA(key string) int {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
 	base64.StdEncoding.Decode(keyBinary, []byte(key))
 	err := keyBinary
 	if err == nil {
 		fmt.Println("Error:", err)
-		return
 	}
 	t := int(keyBinary[0])
 	q := new(big.Int).SetBytes(keyBinary[1:21])
 	p := new(big.Int).SetBytes(keyBinary[21 : 21+(64+t*8)])
 	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
 	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
-
-	l := len(keyBinary[21:21+(64+t*8)]) * 8
+	l := p.BitLen()
 	fmt.Printf("\n\n### DSA ###\nT: %d\nQ: %s\nP: %s\nG: %s\nY: %s\nl: %d\n", t, q, p, g, y, l)
-	return
+	return l
 }
-
-/*func extractDSAkey(key string) (t, q, p, g, y) {
-	data := b64.StdDecoding.DecodeToString(key)
-
-}*/
 
 // Checks if the DNSKEY uses accepted (?) algorithms
 // Signature Algorithm:
@@ -232,9 +226,8 @@ func parseDSA(key string) {
 //  2. RSA/SHA-1 (IETF accepted alternative)
 //  -  RSA/MD5 (IETF shouldnt be considered)
 //  Key Length: nlnet.nl-02102-2
-//  - RSA min 2048 bit bis 2022
-//  - RSA min 3072 bit ab 2023
-//  - DSA min 2000 bit bis 2022
+//  - RSA min 2048 bit bis 2022 - bzw. min 3072 bit ab 2023
+//  - DSA min 2048 bit bis 2022 - bzw. min 3072 bit ab 2023
 //	- ECDSA min 250 bis 2022
 func checkKeys(fqdn string, out *Out) {
 	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
