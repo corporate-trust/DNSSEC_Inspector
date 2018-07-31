@@ -49,7 +49,7 @@ type Key struct {
 	HComment  string `json:"hComment"`
 	HUntil    string `json:"hUntil"`
 	Alg       string `json:"alg"`
-	keyLength int32  `json:"keyLength"`
+	keyLength int    `json:"keyLength"`
 	AComment  string `json:"aComment"`
 	AUntil    string `json:"aUntil"`
 }
@@ -239,47 +239,175 @@ func checkKeys(fqdn string, out *Out) {
 			if x[4] == "256" {
 				k.Type = "ZSK"
 			} else if x[4] == "257" {
-				k.Type = "KSK key strength"
+				k.Type = "KSK"
 			}
-			s, _ := strconv.ParseInt(x[6], 10, 8)
-			switch s {
-			case 1: // RSA/MD5
+			switch x[6] {
+			case "1": // RSA/MD5
+				k.Alg = "RSA"
+				k.keyLength = parseRSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
 				k.Hash = "MD5"
 				k.HComment = "NON-COMPLIANT"
-			case 3: // DSA/SHA-1
-				// Check key length
+				k.HUntil = "09.2004"
+
+			case "3": // DSA/SHA-1
+				k.Alg = "DSA"
+				k.keyLength = parseDSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
 				k.Hash = "SHA-1"
-				k.HComment = "COMPLIANT"
-			case 5: // RSA/SHA-1
-				// SHA-256 would be better
+				k.HComment = "NON-COMPLIANT"
+				k.HUntil = "10.2015"
+
+			case "5": // RSA/SHA-1
+				k.Alg = "RSA"
+				k.keyLength = parseRSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
+				k.Hash = "SHA-1"
+				k.HComment = "NON-COMPLIANT"
+				k.HUntil = "10.2015"
+
+			case "6": // DSA/SHA-1/NSEC3
+				k.Alg = "DSA"
+				k.keyLength = parseDSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
+				k.Hash = "SHA-1"
+				k.HComment = "NON-COMPLIANT"
+				k.HUntil = "10.2015"
+
+			case "7": // RSA/SHA-1/NSEC3
+				k.Alg = "RSA"
+				k.keyLength = parseRSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
+				k.Hash = "SHA-1"
+				k.HComment = "NON-COMPLIANT"
+				k.HUntil = "10.2015"
+
+			case "8": // RSA/SHA-256
+				k.Alg = "RSA"
+				k.keyLength = parseRSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-			case 6: // RSA/SHA-1/NSEC3
-				// Could be better
-				k.Hash = "SHA-1"
-				k.HComment = "COMPLIANT"
-			case 7: // RSA/SHA-1/NSEC3
-				// Could be better
-				k.Hash = "SHA-1"
-				k.HComment = "COMPLIANT"
-			case 8: // RSA/SHA-256
-				// Check key length
-				// nlnet.nlcommended -> perfectly fine
+				k.HUntil = "prognosis impossible (>2023)"
+
+			case "10": // RSA/SHA-512
+				k.Alg = "RSA"
+				k.keyLength = parseRSA(x[7])
+				if k.keyLength >= 2048 && k.keyLength < 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "2022"
+				} else if k.keyLength >= 3072 {
+					k.AComment = "COMPLIANT"
+					k.AUntil = "prognosis impossible (>2023)"
+				} else {
+					k.AComment = "NON-COMPLIANT"
+					//k.AUntil = ""
+				}
+
 				k.Hash = "SHA-256"
-			case 10: // RSA/SHA-512
-				// check key length
-				// perfectly fine
+				k.HComment = "COMPLIANT"
+				k.HUntil = "prognosis impossible (>2023)"
+
+			case "13": // ECDSA P-256 with SHA-256
+				k.Alg = "ECDSA P-256"
+				k.keyLength = 256
+				k.AComment = "COMPLIANT"
+				k.AUntil = "2022"
+
+				k.Hash = "SHA-256"
+				k.HComment = "COMPLIANT"
+				k.HUntil = "prognosis impossible (>2023)"
+
+			case "14": // ECDSA P-384 with SHA-384
+				k.Alg = "ECDSA P-384"
+				k.keyLength = 384
+				k.AComment = "COMPLIANT"
+				k.AUntil = "prognosis impossible (>2023)"
+
+				k.Hash = "SHA-384"
+				k.HComment = "COMPLIANT"
+				k.HUntil = "prognosis impossible (>2023)"
+
+			case "15": // ED25519 (128bit sec)
+				k.Alg = "Ed25519"
+				k.keyLength = 256
+				k.AComment = "COMPLIANT"
+				k.AUntil = "prognosis impossible (>2023)"
+
 				k.Hash = "SHA-512"
-			case 13: // ECDSA P-256 (128bit sec) with SHA-256
-				// SHA-256 is perfectly fine
-				k.Hash = "None"
-			case 14: //ECDSA P-384 (192bit sec)
-				// perfectly fine
-				k.Hash = "None"
-			case 15: // Ed25519 (128bit sec)
-				k.Hash = "-"
-			case 16: // ED448
-				k.Hash = "-"
+				k.HComment = "COMPLIANT"
+				k.HUntil = "prognosis impossible (>2023)"
+
+			case "16": // ED448
+				k.Alg = "Ed25519"
+				k.keyLength = 488
+				k.AComment = "COMPLIANT"
+				k.AUntil = "prognosis impossible (>2023)"
+
+				k.Hash = "SHAKE-256"
+				k.HComment = "COMPLIANT"
+				k.HUntil = "prognosis impossible (>2023)"
+
 			default:
 			}
 		}
