@@ -9,7 +9,7 @@ import (
 
 func TestOutputANYwithDNSSECrrs(*testing.T) {
 	fqdn := "bsi.de"
-	m := dnssecQuery(fqdn, dns.TypeANY)
+	m := dnssecQuery(fqdn, dns.TypeA)
 	fmt.Printf("\nAnswer Section: \n")
 	for _, x := range m.Answer {
 		fmt.Printf("%v\n", x)

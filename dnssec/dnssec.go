@@ -164,7 +164,7 @@ func (e *validationError) Error() string {
 func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 	ret := true
 	for _, rr := range r {
-		if rr.Header().Rrtype == dns.TypeRRSIG { // Filter on RRSIG records
+		if rr.Header().Rrtype == dns.TypeRRSIG && rr.(*dns.RRSIG).TypeCovered != dns.TypeDNSKEY { // Filter on RRSIG records
 			if !rr.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
 				return false, &validationError{rr, "The validity period expired"}
 			} else {
@@ -193,15 +193,23 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 
 func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
 	m := dnssecQuery(fqdn, r.(*dns.RRSIG).TypeCovered)
+	var ret []dns.RR
 	switch section {
 	case "Answer":
-		return m.Answer
+		ret = m.Answer
 	case "Ns":
-		return m.Ns
+		ret = m.Ns
 	case "Extra":
-		return m.Extra
+		ret = m.Extra
 	}
-	return nil
+	for i, r := range ret {
+		if _, ok := r.(*dns.RRSIG); ok {
+			ret[i] = ret[len(ret)-1]
+			ret[len(ret)-1] = nil
+			ret = ret[:len(ret)-1]
+		}
+	}
+	return ret
 }
 
 func parseRSA(keyIn string) (e, n, l int) {
