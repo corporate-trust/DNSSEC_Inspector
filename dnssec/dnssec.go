@@ -220,15 +220,7 @@ func parseDSA(key string) int {
 	return l
 }
 
-// Checks if the DNSKEY uses accepted (?) algorithms
-// Signature Algorithm:
-// 	1. RSA/SHA-256 (IETF Recom)
-//  2. RSA/SHA-1 (IETF accepted alternative)
-//  -  RSA/MD5 (IETF shouldnt be considered)
-//  Key Length: nlnet.nl-02102-2
-//  - RSA min 2048 bit bis 2022 - bzw. min 3072 bit ab 2023
-//  - DSA min 2048 bit bis 2022 - bzw. min 3072 bit ab 2023
-//	- ECDSA min 250 bis 2022
+// Checks for accepted DNSKEY algorithms, hash algorithms and key length
 func checkKeys(fqdn string, out *Out) {
 	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
 	for _, i := range r.Answer {
