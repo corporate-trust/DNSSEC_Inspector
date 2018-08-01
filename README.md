@@ -47,7 +47,7 @@ Command: ./cydis_DNSSEC -standalone -fqdn=nlnet.nl
                         "hComment": "COMPLIANT",
                         "hUntil": "prognosis impossible (2023+)",
                         "alg": "RSA",
-                        "keyLength": 2056,
+                        "keyLength": 2048,
                         "aComment": "COMPLIANT",
                         "aUntil": "2022"
                 },
