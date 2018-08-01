@@ -222,19 +222,32 @@ func parseRSA(keyIn string) (big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
 	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
 	var e, n *big.Int
+	var el, l int
 	if keyBinary == nil {
 		Error.Fatalf("Key %s is not base64 readable\n", keyIn)
 	}
 	if keyBinary[0] == 0 {
-		el := (int(keyBinary[1]) << 8) + int(keyBinary[2])
+		el = (int(keyBinary[1]) << 8) + int(keyBinary[2])
 		e = new(big.Int).SetBytes(keyBinary[3 : el+3])
 		n = new(big.Int).SetBytes(keyBinary[el+3:])
+		if n.BitLen() <= 1024 {
+			l = len(keyBinary[el+3:]) * 8
+		} else {
+			l = len(keyBinary[el+4:]) * 8
+		}
+		return *e, *n, l
 	} else {
-		el := keyBinary[0]
+		el = int(keyBinary[0])
 		e = new(big.Int).SetBytes(keyBinary[1 : el+1])
 		n = new(big.Int).SetBytes(keyBinary[el+1:])
+		if n.BitLen() <= 1024 {
+			l = len(keyBinary[el+1:]) * 8
+		} else {
+			l = len(keyBinary[el+2:]) * 8
+		}
+		return *e, *n, l
 	}
-	return *e, *n, n.BitLen()
+	return *e, *n, l
 }
 
 // Parses an given DSA key as base64 encoded string and returns the key material
