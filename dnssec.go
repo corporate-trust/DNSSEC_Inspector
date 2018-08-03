@@ -104,6 +104,11 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 	return *r
 }
 
+// Checks if the DNS server of the requested fqdn is authoritative and resolving at the same time
+func checkAuthoritative(fqdn string) {
+
+}
+
 // Checks the existance of RRSIG rescource records
 // on given domain
 func checkExistence(fqdn string, res *Result) bool {
@@ -250,8 +255,8 @@ func parseRSA(keyIn string) (big.Int, big.Int, int) {
 	return *e, *n, l
 }
 
-// Parses an given DSA key as base64 encoded string and returns the key material
-// as single values
+/* Parses an given DSA key as base64 encoded string and returns the
+key material as single values*/
 func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
 	base64.StdEncoding.Decode(keyBinary, []byte(key))
