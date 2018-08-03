@@ -1,5 +1,6 @@
 - für fqdn den SOA Record abfragen
-- für resolving Domain den NS Record abfragen
+- für resolving Domain aus SOA Record, den NS Record abfragen
 - für jeden Eintrag im NS Record auf 2 voneinander unabhängige Domains prüfen
-    (sollten nicht auflösen können, da autoritativ und nicht resolving 
-    und die 2 Input Domains nicht gespeichert sein sollten - bzw. max. eine)
+    (sollten nicht auflösen können, da autoritativ und nicht
+    resolving und die 2 Input Domains nicht gespeichert sein
+    sollten - bzw. max. eine)

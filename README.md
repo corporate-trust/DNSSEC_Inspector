@@ -3,6 +3,10 @@
 * Is part of the cydis scoring
 * Is written in golang (v1.10)
 
+## Installation
+* Clone repository
+* Set GOROOT and GOPATH
+* go build
 
 ## Library needed
 
@@ -20,6 +24,9 @@
 * time
 * github.com/miekg/dns
 
+## Standalone example
+
+Command: ./cydis_DNSSEC -standalone -fqdn=nlnet.nl
 
 ## Standalone example
 
