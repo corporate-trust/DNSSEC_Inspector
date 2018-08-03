@@ -89,15 +89,17 @@ func (res *Result) outputFile(filepath string) {
 /* Queries for a given fully qualified domain name and a given type of resource
 records. It also includes the DNSSEC relevant matrial.
 */
-func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
-	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
+func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
+	if server == "" {
+		server = "8.8.8.8"
+	}
 	c := new(dns.Client)
 	c.Net = "udp"
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
 	m.SetEdns0(4096, true)
 	m.RecursionDesired = true
-	r, _, _ := c.Exchange(m, net.JoinHostPort(config.Servers[0], config.Port))
+	r, _, _ := c.Exchange(m, net.JoinHostPort(server, "53"))
 	if r == nil || r.Rcode != dns.RcodeSuccess {
 		r = new(dns.Msg)
 	}
@@ -107,7 +109,7 @@ func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
 // Checks the existance of RRSIG rescource records
 // on given domain
 func checkExistence(fqdn string, res *Result) bool {
-	r := dnssecQuery(fqdn, dns.TypeRRSIG)
+	r := dnssecQuery(fqdn, dns.TypeRRSIG, "")
 	if r.Answer == nil {
 		res.DNSSEC = false
 		res.Signatures = false
@@ -125,7 +127,7 @@ If an NSEC3PARAM RR is present at the apex of a zone with a Flags field
 value of zero, then thre MUST be an NSEC3 RR using the same hash algorithm,
 iterations, and salt parameters … */
 func checkNSEC3Existence(fqdn string, out *Result) bool {
-	r := dnssecQuery(fqdn, dns.TypeNSEC3PARAM)
+	r := dnssecQuery(fqdn, dns.TypeNSEC3PARAM, "")
 	if len(r.Answer) > 0 {
 		for _, i := range r.Answer {
 			x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
@@ -142,7 +144,7 @@ func checkNSEC3Existence(fqdn string, out *Result) bool {
 /* Checks if the RRSIG records for fqdn can be validated */
 func checkValidation(fqdn string, out *Result) bool {
 	// get RRSIG RR to check
-	r := dnssecQuery(fqdn, dns.TypeANY)
+	r := dnssecQuery(fqdn, dns.TypeANY, "")
 	var err error
 	if out.ValidatesAnwer, err = checkSection(fqdn, r.Answer, "Answer"); err != nil {
 		out.ValidationErrorAnwer = err.Error()
@@ -181,7 +183,7 @@ func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 
 // Loads and returns the DNSKEY that made the signature in RRSIG RR
 func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
-	m := dnssecQuery(fqdn, dns.TypeDNSKEY)
+	m := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
 	for _, i := range m.Answer {
 		if k, ok := i.(*dns.DNSKEY); ok {
 			if k.KeyTag() == r.(*dns.RRSIG).KeyTag {
@@ -192,11 +194,9 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 	return nil
 }
 
-// Builds a list of RRs the given signature rr was made for
-func getRRsCoveredByRRSIG(fqdn string, rr dns.RR, section string) []dns.RR {
-	m := dnssecQuery(fqdn, dns.TypeANY)
-	var x []dns.RR
-	ret := []dns.RR{}
+func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
+	m := dnssecQuery(fqdn, r.(*dns.RRSIG).TypeCovered, "")
+	var ret []dns.RR
 	switch section {
 	case "Answer":
 		x = m.Answer
@@ -265,13 +265,12 @@ func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 	g := new(big.Int).SetBytes(keyBinary[21+(64+t*8) : 21+(64+t*8)*2])
 	y := new(big.Int).SetBytes(keyBinary[21+(64+t*8)*2:])
 	l := p.BitLen()
-
 	return *q, *p, *g, *y, l
 }
 
 // Checks the DNSKEY records associated with the fqdn at the authorative server
 func checkKeys(fqdn string, out *Result) {
-	r := dnssecQuery(fqdn, dns.TypeDNSKEY)
+	r := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
 	for _, i := range r.Answer {
 		x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
 		if x[5] == "3" {
