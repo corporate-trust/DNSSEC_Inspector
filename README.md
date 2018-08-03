@@ -5,7 +5,7 @@
 
 ## Installation
 * Clone repository
-* Set GOROOT and GOPATH
+* Set GOROOT and GOPATHc
 * go build
 
 ## Library needed
