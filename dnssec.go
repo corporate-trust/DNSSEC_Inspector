@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net"
@@ -77,13 +76,6 @@ func main() {
 		res.outputFile(path)
 	}
 	return
-}
-
-func (res *Result) outputFile(filepath string) {
-	d, _ := json.Marshal(res)
-	if err := ioutil.WriteFile(filepath, d, 0644); err != nil {
-		Error.Printf("Cannot write file: %s", err.Error())
-	}
 }
 
 /* Queries for a given fully qualified domain name and a given type of resource
@@ -277,10 +269,11 @@ func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 // Checks the DNSKEY records associated with the fqdn at the authorative server
 func checkKeys(fqdn string, out *Result) {
 	r := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
+	var l int
 	for _, i := range r.Answer {
 		x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
 		if x[5] == "3" {
-			out.KeyCount = len(x)
+			l++
 			k := new(Key)
 			if x[4] == "256" {
 				k.Type = "ZSK"
@@ -434,7 +427,8 @@ func checkKeys(fqdn string, out *Result) {
 				k.HUntil = "prognosis impossible (2023+)"
 			default:
 			}
-			out.Keys = append(out.Keys, *k)
+			res.Keys = append(res.Keys, *k)
 		}
 	}
+	res.KeyCount = l
 }

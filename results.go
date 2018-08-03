@@ -1,5 +1,10 @@
 package main
 
+import (
+	"encoding/json"
+	"io/ioutil"
+)
+
 //
 type Result struct {
 	DNSSEC               bool   `json:"dnssec"`
@@ -31,6 +36,9 @@ type Key struct {
 	AUntil    string `json:"aUntil"`
 }
 
-func (o *Result) generateFindings() {
-
+func (res *Result) outputFile(filepath string) {
+	d, _ := json.Marshal(res)
+	if err := ioutil.WriteFile(filepath, d, 0644); err != nil {
+		Error.Printf("Cannot write file: %s", err.Error())
+	}
 }
