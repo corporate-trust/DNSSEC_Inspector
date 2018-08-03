@@ -89,15 +89,10 @@ func (res *Result) outputFile(filepath string) {
 /* Queries for a given fully qualified domain name and a given type of resource
 records. It also includes the DNSSEC relevant matrial.
 */
-<<<<<<< HEAD
-func dnssecQuery(fqdn string, rrType uint16) dns.Msg {
-	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
-=======
 func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	if server == "" {
 		server = "8.8.8.8"
 	}
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 	c := new(dns.Client)
 	c.Net = "udp"
 	m := new(dns.Msg)
@@ -204,17 +199,10 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 	return nil
 }
 
-<<<<<<< HEAD
-// Builds a list of RRs the given signature rr was made for
 func getRRsCoveredByRRSIG(fqdn string, rr dns.RR, section string) []dns.RR {
-	m := dnssecQuery(fqdn, dns.TypeANY)
-	var x []dns.RR
-	ret := []dns.RR{}
-=======
-func getRRsCoveredByRRSIG(fqdn string, r dns.RR, section string) []dns.RR {
-	m := dnssecQuery(fqdn, r.(*dns.RRSIG).TypeCovered, "")
+	m := dnssecQuery(fqdn, rr.(*dns.RRSIG).TypeCovered, "")
 	var ret []dns.RR
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
+	var x []dns.RR
 	switch section {
 	case "Answer":
 		x = m.Answer
@@ -248,30 +236,22 @@ func parseRSA(keyIn string) (big.Int, big.Int, int) {
 		el = (int(keyBinary[1]) << 8) + int(keyBinary[2])
 		e = new(big.Int).SetBytes(keyBinary[3 : el+3])
 		n = new(big.Int).SetBytes(keyBinary[el+3:])
-<<<<<<< HEAD
 		if n.BitLen() <= 1024 {
 			l = len(keyBinary[el+3:]) * 8
 		} else {
 			l = len(keyBinary[el+4:]) * 8
 		}
 		return *e, *n, l
-=======
-		l = len(keyBinary[el+3:]) * 8
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 	} else {
 		el = int(keyBinary[0])
 		e = new(big.Int).SetBytes(keyBinary[1 : el+1])
 		n = new(big.Int).SetBytes(keyBinary[el+1:])
-<<<<<<< HEAD
 		if n.BitLen() <= 1024 {
 			l = len(keyBinary[el+1:]) * 8
 		} else {
 			l = len(keyBinary[el+2:]) * 8
 		}
 		return *e, *n, l
-=======
-		l = len(keyBinary[el+1:]) * 8
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 	}
 	return *e, *n, l
 }
@@ -403,11 +383,7 @@ func checkKeys(fqdn string, out *Result) {
 				}
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-<<<<<<< HEAD
 				k.HUntil = "prognosis impossible (2023+)"
-=======
-				k.HUntil = "prognosis impossible (>2023)"
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 			case "10": // RSA/SHA-512
 				k.Alg = "RSA"
 				_, _, k.KeyLength = parseRSA(x[7])
@@ -423,11 +399,7 @@ func checkKeys(fqdn string, out *Result) {
 				}
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-<<<<<<< HEAD
 				k.HUntil = "prognosis impossible (2023+)"
-=======
-				k.HUntil = "prognosis impossible (>2023)"
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 			case "13": // ECDSA P-256 with SHA-256
 				k.Alg = "ECDSA P-256"
 				k.KeyLength = 256
@@ -435,56 +407,31 @@ func checkKeys(fqdn string, out *Result) {
 				k.AUntil = "2022"
 				k.Hash = "SHA-256"
 				k.HComment = "COMPLIANT"
-<<<<<<< HEAD
 				k.HUntil = "prognosis impossible (2023+)"
-=======
-				k.HUntil = "prognosis impossible (>2023)"
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 			case "14": // ECDSA P-384 with SHA-384
 				k.Alg = "ECDSA P-384"
 				k.KeyLength = 384
 				k.AComment = "COMPLIANT"
-<<<<<<< HEAD
 				k.AUntil = "prognosis impossible (2023+)"
 				k.Hash = "SHA-384"
 				k.HComment = "COMPLIANT"
 				k.HUntil = "prognosis impossible (2023+)"
-=======
-				k.AUntil = "prognosis impossible (>2023)"
-				k.Hash = "SHA-384"
-				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 			case "15": // ED25519 (128bit sec)
 				k.Alg = "Ed25519"
 				k.KeyLength = 256
 				k.AComment = "COMPLIANT"
-<<<<<<< HEAD
 				k.AUntil = "prognosis impossible (2023+)"
 				k.Hash = "SHA-512"
 				k.HComment = "COMPLIANT"
 				k.HUntil = "prognosis impossible (2023+)"
-=======
-				k.AUntil = "prognosis impossible (>2023)"
-				k.Hash = "SHA-512"
-				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 			case "16": // ED448
 				k.Alg = "Ed25519"
 				k.KeyLength = 488
 				k.AComment = "COMPLIANT"
-<<<<<<< HEAD
 				k.AUntil = "prognosis impossible (2023+)"
 				k.Hash = "SHAKE-256"
 				k.HComment = "COMPLIANT"
 				k.HUntil = "prognosis impossible (2023+)"
-=======
-				k.AUntil = "prognosis impossible (>2023)"
-				k.Hash = "SHAKE-256"
-				k.HComment = "COMPLIANT"
-				k.HUntil = "prognosis impossible (>2023)"
->>>>>>> ba0c63f3ea1ee9527ba4d0fb56f4fabb2526ec2d
 			default:
 			}
 			out.Keys = append(out.Keys, *k)
