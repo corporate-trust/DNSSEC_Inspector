@@ -40,108 +40,141 @@ Command: ./cydis_DNSSEC -fqdn=bsi.de
 
 ``` json
 {
+    "dnssec": true,
     "target": "bund.de",
+    "trustIsland": false,
+    "trustIslandAnchorZone": "",
     "zones": [
         {
-            "fqdn": "bund.de",
-            "signatures": false,
-            "validation": true,
-            "validatesAnswer": true,
-            "validatesNs": true,
-            "validatesExtra": true,
-            "validationErrorAnswer": "",
-            "validationErrorNs": "",
-            "validationErrorExtra": "",
-            "nsec3": true,
             "NSEC3iter": 10,
-            "keycount": 0,
+            "fqdn": "bund.de",
+            "keycount": 2,
             "keys": [
                 {
-                    "valid": true,
+                    "aComment": "NON-COMPLIANT",
+                    "aUntil": "",
+                    "alg": "RSA",
+                    "hComment": "NON-COMPLIANT",
+                    "hUntil": "10.2015",
+                    "hash": "SHA-1",
+                    "keyLength": 1024,
                     "trustAnchor": false,
-                    "type": "",
-                    "hash": "",
-                    "hComment": "",
-                    "hUntil": "",
-                    "alg": "",
-                    "keyLength": 0,
-                    "aComment": "",
-                    "aUntil": ""
-                }
-            ]
-        },
-        {
-            "fqdn": "de",
-            "signatures": false,
-            "validation": false,
-            "validatesAnswer": false,
-            "validatesNs": false,
-            "validatesExtra": true,
-            "validationErrorAnswer": "de.\t83068\tIN\tRRSIG\t - Cannot validate the siganture cryptographically",
-            "validationErrorNs": "de.\t83364\tIN\tRRSIG\t - Cannot validate the siganture cryptographically",
-            "validationErrorExtra": "",
-            "nsec3": true,
-            "NSEC3iter": 15,
-            "keycount": 0,
-            "keys": [
-                {
-                    "valid": true,
-                    "trustAnchor": false,
-                    "type": "",
-                    "hash": "",
-                    "hComment": "",
-                    "hUntil": "",
-                    "alg": "",
-                    "keyLength": 0,
-                    "aComment": "",
-                    "aUntil": ""
-                }
-            ]
-        },
-        {
-            "fqdn": ".",
-            "signatures": false,
-            "validation": false,
-            "validatesAnswer": true,
-            "validatesNs": false,
-            "validatesExtra": true,
-            "validationErrorAnswer": "",
-            "validationErrorNs": ".\t85958\tIN\tRRSIG\t - Cannot validate the siganture cryptographically",
-            "validationErrorExtra": "",
-            "nsec3": false,
-            "NSEC3iter": 0,
-            "keycount": 0,
-            "keys": [
-                {
-                    "valid": false,
-                    "trustAnchor": true,
-                    "type": "",
-                    "hash": "",
-                    "hComment": "",
-                    "hUntil": "",
-                    "alg": "",
-                    "keyLength": 0,
-                    "aComment": "",
-                    "aUntil": ""
+                    "type": "ZSK",
+                    "valid": false
                 },
                 {
-                    "valid": false,
-                    "trustAnchor": true,
-                    "type": "",
-                    "hash": "",
-                    "hComment": "",
-                    "hUntil": "",
-                    "alg": "",
-                    "keyLength": 0,
-                    "aComment": "",
-                    "aUntil": ""
+                    "aComment": "COMPLIANT",
+                    "aUntil": "2022",
+                    "alg": "RSA",
+                    "hComment": "NON-COMPLIANT",
+                    "hUntil": "10.2015",
+                    "hash": "SHA-1",
+                    "keyLength": 2048,
+                    "trustAnchor": false,
+                    "type": "KSK",
+                    "valid": true
                 }
-            ]
+            ],
+            "nsec3": true,
+            "validatesAnswer": true,
+            "validatesExtra": true,
+            "validatesNs": true,
+            "validation": true,
+            "validationErrorAnswer": "",
+            "validationErrorExtra": "",
+            "validationErrorNs": ""
+        },
+        {
+            "NSEC3iter": 15,
+            "fqdn": "de",
+            "keycount": 2,
+            "keys": [
+                {
+                    "aComment": "NON-COMPLIANT",
+                    "aUntil": "",
+                    "alg": "RSA",
+                    "hComment": "COMPLIANT",
+                    "hUntil": "prognosis impossible (2023+)",
+                    "hash": "SHA-256",
+                    "keyLength": 1024,
+                    "trustAnchor": false,
+                    "type": "ZSK",
+                    "valid": false
+                },
+                {
+                    "aComment": "COMPLIANT",
+                    "aUntil": "2022",
+                    "alg": "RSA",
+                    "hComment": "COMPLIANT",
+                    "hUntil": "prognosis impossible (2023+)",
+                    "hash": "SHA-256",
+                    "keyLength": 2048,
+                    "trustAnchor": false,
+                    "type": "KSK",
+                    "valid": true
+                }
+            ],
+            "nsec3": true,
+            "validatesAnswer": true,
+            "validatesExtra": true,
+            "validatesNs": true,
+            "validation": true,
+            "validationErrorAnswer": "",
+            "validationErrorExtra": "",
+            "validationErrorNs": ""
+        },
+        {
+            "NSEC3iter": 0,
+            "fqdn": ".",
+            "keycount": 3,
+            "keys": [
+                {
+                    "aComment": "COMPLIANT",
+                    "aUntil": "2022",
+                    "alg": "RSA",
+                    "hComment": "COMPLIANT",
+                    "hUntil": "prognosis impossible (2023+)",
+                    "hash": "SHA-256",
+                    "keyLength": 2048,
+                    "trustAnchor": false,
+                    "type": "ZSK",
+                    "valid": false
+                },
+                {
+                    "aComment": "COMPLIANT",
+                    "aUntil": "2022",
+                    "alg": "RSA",
+                    "hComment": "COMPLIANT",
+                    "hUntil": "prognosis impossible (2023+)",
+                    "hash": "SHA-256",
+                    "keyLength": 2048,
+                    "trustAnchor": true,
+                    "type": "KSK",
+                    "valid": false
+                },
+                {
+                    "aComment": "COMPLIANT",
+                    "aUntil": "2022",
+                    "alg": "RSA",
+                    "hComment": "COMPLIANT",
+                    "hUntil": "prognosis impossible (2023+)",
+                    "hash": "SHA-256",
+                    "keyLength": 2048,
+                    "trustAnchor": true,
+                    "type": "KSK",
+                    "valid": false
+                }
+            ],
+            "nsec3": false,
+            "validatesAnswer": true,
+            "validatesExtra": true,
+            "validatesNs": true,
+            "validation": true,
+            "validationErrorAnswer": "",
+            "validationErrorExtra": "",
+            "validationErrorNs": ""
         }
-    ],
-    "dnssec": true,
-    "TrustIsland": false,
-    "trustIslandAnchorZone": ""
+    ]
 }
 ```
 
