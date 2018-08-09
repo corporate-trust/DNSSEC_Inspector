@@ -7,9 +7,9 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestOutputANYwithDNSSECrrs(*testing.T) {
+func TestOutputANYwithDNSSECrrs(t *testing.T) {
 	fqdn := "bsi.de"
-	m := dnssecQuery(fqdn, dns.TypeA)
+	m := dnssecQuery(fqdn, dns.TypeA, "")
 	fmt.Printf("\nAnswer Section: \n")
 	for _, x := range m.Answer {
 		fmt.Printf("%v\n", x)
@@ -25,7 +25,56 @@ func TestOutputANYwithDNSSECrrs(*testing.T) {
 	fmt.Printf("\n")
 }
 
-func TestBundDE(*testing.T) {
-	fqdn := "bsi.de"
-	return
+func TestCheckPath(t *testing.T) {
+	r := Result{}
+	checkPath("bsi.de", &r)
+}
+
+func TestBsiDE(t *testing.T) {
+	m := dnssecQuery("bsi.de", dns.TypeANY, "")
+	if &m == nil {
+		t.Error("No response from dnssecQuery()")
+	}
+	for _, x := range m.Answer {
+		fmt.Printf("%v", x)
+	}
+	for _, x := range m.Ns {
+		fmt.Printf("%v", x)
+	}
+	for _, x := range m.Extra {
+		fmt.Printf("%v", x)
+	}
+}
+
+func TestGetDS(t *testing.T) {
+	m := dnssecQuery("bsi.de", dns.TypeDS, "")
+	for _, x := range m.Answer {
+		fmt.Printf("%v\n", x)
+	}
+	for _, x := range m.Ns {
+		fmt.Printf("%v\n", x)
+	}
+	for _, x := range m.Extra {
+		fmt.Printf("%v\n", x)
+	}
+}
+
+/*func TestGetKSK(t *testing.T) {
+	m := getDNSKEYs("bsi.de", 257)
+	fmt.Printf("%v\n", m[0].KeyTag())
+}*/
+
+/*func TestMakeZones(t *testing.T) {
+	y := makeZones("example.higher.tld")
+	for _, x := range y {
+		fmt.Printf(x)
+		//	t.Log(x)
+	}
+}*/
+
+func TestMakeQuery(t *testing.T) {
+	m := dnssecQuery("bsi.de", dns.TypeDNSKEY, "")
+	for _, x := range m.Answer {
+		fmt.Printf("%v\n", x)
+	}
 }
