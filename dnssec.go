@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -14,6 +15,7 @@ import (
 )
 
 var (
+	Info    *log.Logger
 	Warning *log.Logger
 	Error   *log.Logger
 )
@@ -27,9 +29,14 @@ func (e *validationError) Error() string {
 	return fmt.Sprintf("%s - %s", e.rr.Header().String(), e.msg)
 }
 
-func initLog(verbose bool) {
-	if verbose {
-		Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+func initLog(verbose bool, superverbose bool) {
+	Info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+	if !verbose || !superverbose {
+		Warning.SetOutput(ioutil.Discard)
+	}
+	if !superverbose {
+		Info.SetOutput(ioutil.Discard)
 	}
 	Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
@@ -41,8 +48,9 @@ func main() {
 	fqdnPtr := flag.String("fqdn", "", "Domainname to test DNSSEC for")
 	outfilePtr := flag.String("f", "", "Filepath to write results to")
 	verbosePtr := flag.Bool("v", false, "Show warnings on toggle")
+	superverbosePtr := flag.Bool("vv", false, "Show info on toggle")
 	flag.Parse()
-	initLog(*verbosePtr)
+	initLog(*verbosePtr, *superverbosePtr)
 	if *fqdnPtr == "" {
 		Error.Fatal("No domain name was given! Please speify one with --fqdn=example.com\n")
 	} else {
@@ -68,14 +76,22 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
 	m.SetEdns0(4096, true)
 	m.RecursionDesired = true
-	r, _, _ := c.Exchange(m, net.JoinHostPort(config.Servers[0], config.Port))
+	var r *dns.Msg
+	for _, x := range config.Servers {
+		r, _, _ = c.Exchange(m, net.JoinHostPort(x, config.Port))
+		if r != nil {
+			Warning.Printf("Got anwer from %s\n")
+			break
+		}
+	}
 	if r == nil {
-		Error.Fatal("Cant resolve name!\n")
+		Error.Fatalf("Cant resolve dns question with any server\n")
 	}
 	return *r
 }
 
 // Checks if the DNS server of the requested fqdn is authoritative and resolving at the same time
+// TODO:
 func checkAuthoritative(fqdn string) bool {
 	return true
 }
@@ -86,6 +102,7 @@ func checkExistence(fqdn string, res *Result) bool {
 	r := dnssecQuery(fqdn, dns.TypeRRSIG, "")
 	if r.Answer == nil {
 		res.DNSSEC = false
+		Error.Fatalf("Couldnt verify DNSSEC Existance for %s\n", fqdn)
 		return false
 	}
 	res.DNSSEC = true

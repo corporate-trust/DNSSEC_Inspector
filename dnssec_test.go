@@ -78,3 +78,11 @@ func TestMakeQuery(t *testing.T) {
 		fmt.Printf("%v\n", x)
 	}
 }
+
+func TestListOfDNSresolvers(t *testing.Test) {
+	servers := []string{"185.48.116.10", "185.48.118.6", "8.8.8.8", "8.8.4.4", "9.9.9.10", "4.2.2.1", "4.2.2.2", "4.2.2.3"}
+	results := make([]Result, len(servers))
+	for i, s := range servers {
+		checkPath("bund.de", &results[i])
+	}
+}
