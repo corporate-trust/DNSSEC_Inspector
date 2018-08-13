@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 	"math/big"
 	"regexp"
 
@@ -12,13 +11,13 @@ import (
 /* Parses a given RSA key as base64 encoded string and returns the
 key material and the bit length of the key as single values (e, n, KeyLength)
 */
-func parseRSA(keyIn string) (big.Int, big.Int, int) {
-	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(keyIn)))
-	base64.StdEncoding.Decode(keyBinary, []byte(keyIn))
+func parseRSA(key string) (big.Int, big.Int, int) {
+	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
+	base64.StdEncoding.Decode(keyBinary, []byte(key))
 	var e, n *big.Int
 	var el, l int
 	if keyBinary == nil {
-		Error.Fatalf("Key %s is not base64 readable\n", keyIn)
+		Error.Fatalf("Key %s is not base64 readable\n", key)
 	}
 	if keyBinary[0] == 0 {
 		el = (int(keyBinary[1]) << 8) + int(keyBinary[2])
@@ -47,9 +46,8 @@ key material as single values*/
 func parseDSA(key string) (big.Int, big.Int, big.Int, big.Int, int) {
 	keyBinary := make([]byte, base64.StdEncoding.DecodedLen(len(key)))
 	base64.StdEncoding.Decode(keyBinary, []byte(key))
-	err := keyBinary
-	if err == nil {
-		fmt.Println("Error:", err)
+	if keyBinary == nil {
+		Error.Fatalf("Key %s is not base64 readable\n", key)
 	}
 	t := int(keyBinary[0])
 	q := new(big.Int).SetBytes(keyBinary[1:21])
