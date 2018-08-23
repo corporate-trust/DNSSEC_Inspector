@@ -80,7 +80,7 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	for _, x := range config.Servers {
 		r, _, _ = c.Exchange(m, net.JoinHostPort(x, config.Port))
 		if r != nil {
-			Warning.Printf("Got anwer from %s\n")
+			//			Warning.Print("Got answer")
 			break
 		}
 	}

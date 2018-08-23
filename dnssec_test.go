@@ -31,6 +31,12 @@ func TestOutputANYwithDNSSECrrs(t *testing.T) {
 	fmt.Printf("\n")
 }
 
+func TestCheckZSKverifiability(t *testing.T) {
+	fqdn := "bund.de"
+	x := checkZSKverifiability(fqdn)
+	t.Log(x)
+}
+
 func TestCheckPath(t *testing.T) {
 	r := Result{}
 	checkPath("bsi.de", &r)

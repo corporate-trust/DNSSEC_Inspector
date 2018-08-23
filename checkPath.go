@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -43,12 +44,13 @@ func checkPath(fqdn string, res *Result) {
 		checkNSEC3Existence(fqdn, z)
 		// 1. Check section (includes checking the validation of ZSK)
 		checkRRValidation(fqdn, z)
-		print()
+		zskValidity := checkZSKverifiability(fqdn)
 		m := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
 		keys := getDNSKEYs(m, ZSK)
 		keyRes1 := make([]Key, len(keys))
 		for i, k := range keys {
 			checkKey(k, &keyRes1[i])
+			keyRes1[i].Verifiable = zskValidity
 		}
 		keys = getDNSKEYs(m, KSK)
 		keyRes2 := make([]Key, len(keys))
@@ -73,6 +75,23 @@ func checkPath(fqdn string, res *Result) {
 	return
 }
 
+func checkZSKverifiability(fqdn string) bool {
+	m := dnssecQuery(fqdn, dns.TypeRRSIG, "")
+	for _, r := range m.Answer {
+		if r.(*dns.RRSIG).TypeCovered == dns.TypeDNSKEY {
+			if !r.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
+				return false
+			}
+			key := getKeyForRRSIG(fqdn, r)
+			records := getRRsCoveredByRRSIG(fqdn, r, "Answer")
+			if err := r.(*dns.RRSIG).Verify(key, records); err != nil {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func checkAuthNS(fqdn string) []Nameserver {
 	m := dnssecQuery(fqdn, dns.TypeNS, "")
 	ret := []Nameserver{}
@@ -91,15 +110,14 @@ func isResolver(ip string, zone string) bool {
 	if zone == x {
 		x = "bund.de"
 	}
+	// TODO: is this working?
 	m := dnssecQuery(x, dns.TypeA, ip)
-	if m.RecursionAvailable {
-		return true
+	if !(m.RecursionAvailable) {
+		if m.Answer == nil {
+			return false
+		}
 	}
-	if m.Answer == nil {
-		return false
-	} else {
-		return true
-	}
+	return true
 }
 
 // Checks the validity of a KSK DNSKEY RR by checking the DS RR in the authoritative zone above
