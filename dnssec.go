@@ -143,6 +143,8 @@ func checkRRValidation(fqdn string, out *Zone) bool {
 	}
 	if out.ValidatesExtra, err = checkSection(fqdn, r.Extra, "Extra"); err != nil {
 		out.ValidationErrorExtra = err.Error()
+	} else {
+		out.ValidationErrorExtra = ""
 	}
 	if out.ValidatesAnswer && out.ValidatesNs && out.ValidatesExtra {
 		out.Validation = true

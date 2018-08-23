@@ -7,6 +7,12 @@ import (
 	"github.com/miekg/dns"
 )
 
+func TestBundDE(t *testing.T) {
+	res := Result{}
+	checkPath("bund.de", &res)
+	res.writeOutput("outest.json")
+}
+
 func TestOutputANYwithDNSSECrrs(t *testing.T) {
 	fqdn := "bsi.de"
 	m := dnssecQuery(fqdn, dns.TypeA, "")
@@ -79,10 +85,10 @@ func TestMakeQuery(t *testing.T) {
 	}
 }
 
-func TestListOfDNSresolvers(t *testing.Test) {
+func TestListOfDNSresolvers(t *testing.T) {
 	servers := []string{"185.48.116.10", "185.48.118.6", "8.8.8.8", "8.8.4.4", "9.9.9.10", "4.2.2.1", "4.2.2.2", "4.2.2.3"}
 	results := make([]Result, len(servers))
-	for i, s := range servers {
+	for i, _ := range servers {
 		checkPath("bund.de", &results[i])
 	}
 }

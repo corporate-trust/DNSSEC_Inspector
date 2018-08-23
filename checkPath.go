@@ -3,13 +3,16 @@ package main
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/miekg/dns"
 )
 
 const (
+	// ZSK has the id 256 in DNSKEY RR
 	ZSK uint16 = 256
+	// KSK has the id 257 in DNSKEY RR
 	KSK uint16 = 257
 )
 
@@ -36,10 +39,11 @@ func checkPath(fqdn string, res *Result) {
 	for _, fqdn = range zoneList {
 		z := &Zone{}
 		z.FQDN = fqdn
+		z.AutoritativeNS = checkAuthNS(fqdn)
 		checkNSEC3Existence(fqdn, z)
 		// 1. Check section (includes checking the validation of ZSK)
 		checkRRValidation(fqdn, z)
-		// 2. Check KSK validity by checking with DS RR in higher z one
+		print()
 		m := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
 		keys := getDNSKEYs(m, ZSK)
 		keyRes1 := make([]Key, len(keys))
@@ -69,6 +73,35 @@ func checkPath(fqdn string, res *Result) {
 	return
 }
 
+func checkAuthNS(fqdn string) []Nameserver {
+	m := dnssecQuery(fqdn, dns.TypeNS, "")
+	ret := []Nameserver{}
+	var x Nameserver
+	for _, r := range m.Answer {
+		x = Nameserver{}
+		x.Name = r.Header().Name
+		x.IP = regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4]
+		ret = append(ret, x)
+	}
+	return ret
+}
+
+func isResolver(ip string, zone string) bool {
+	x := "google.com"
+	if zone == x {
+		x = "bund.de"
+	}
+	m := dnssecQuery(x, dns.TypeA, ip)
+	if m.RecursionAvailable {
+		return true
+	}
+	if m.Answer == nil {
+		return false
+	} else {
+		return true
+	}
+}
+
 // Checks the validity of a KSK DNSKEY RR by checking the DS RR in the authoritative zone above
 func checkKSKverifiability(fqdn string, key dns.DNSKEY, res *Key) (bool, error) {
 	ds, err := getDSforKey(fqdn, key)
@@ -79,9 +112,8 @@ func checkKSKverifiability(fqdn string, key dns.DNSKEY, res *Key) (bool, error) 
 		if ds.Digest == (*newDS).Digest {
 			res.Verifiable = true
 			return true, nil
-		} else {
-			return false, errors.New("DS does not match")
 		}
+		return false, errors.New("DS does not match")
 	}
 	res.TrustAnchor = true
 	return false, err
