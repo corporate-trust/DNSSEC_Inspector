@@ -90,7 +90,7 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	return *r
 }
 
-// Gets the list of authoritative nameserver for given zone
+// Gets the list of authoritative nameserver for given zonet
 func getAuthNS(fqdn string) []string {
 	m := dnssecQuery(fqdn, dns.TypeNS, "")
 	ret := make([]string, 0)
@@ -159,7 +159,7 @@ func checkNSEC3Existence(fqdn string, out *Zone) bool {
 /* Checks if the RRSIG records for fqdn can be validated */
 func checkRRValidation(fqdn string, out *Zone) bool {
 	// get RRSIG RR to check
-	r := dnssecQuery(fqdn, dns.TypeANY, "")
+	r := directDnssecQuery(fqdn, dns.TypeANY, "")
 	var err error
 	if out.ValidatesAnswer, err = checkSection(fqdn, r.Answer, "Answer"); err != nil {
 		out.ValidationErrorAnswer = err.Error()
@@ -180,17 +180,27 @@ func checkRRValidation(fqdn string, out *Zone) bool {
 	return out.Validation
 }
 
-// Checks a given list of RRs (r) from a section on RRSIG RRs and validates them
+// Checks a given list of RRs (r) from a section on RRSIG RRs and validates the
 func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 	ret := true
 	for _, rr := range r {
+		records := []dns.RR{}
 		if rr.Header().Rrtype == dns.TypeRRSIG && rr.(*dns.RRSIG).TypeCovered != dns.TypeDNSKEY { // Filter on RRSIG records
 			if !rr.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
 				return false, &validationError{rr, "The validity period expired"}
 			}
-			key := getKeyForRRSIG(fqdn, rr)
-			records := getRRsCoveredByRRSIG(fqdn, rr, section)
-			if err := rr.(*dns.RRSIG).Verify(key, records); err != nil {
+			d := rr.Header().Name
+			key := getKeyForRRSIG(d, rr)
+			if section == "Extra" {
+				for _, i := range r {
+					if i.Header().Rrtype == rr.(*dns.RRSIG).TypeCovered && i.Header().Name == rr.Header().Name {
+						records = append(records, i)
+					}
+				}
+			} else {
+				records = getRRsCoveredByRRSIG(fqdn, rr, section)
+			}
+			if err := rr.(*dns.RRSIG).Verify(key, records); err != nil 
 				return false, &validationError{rr, "Cannot validate the siganture cryptographically"}
 			}
 		}
@@ -200,7 +210,7 @@ func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 
 // Loads and returns the DNSKEY that made the signature in RRSIG RR
 func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
-	m := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
+	m := dnssecQuery(r.(*dns.RRSIG).SignerName, dns.TypeDNSKEY, "")
 	for _, i := range m.Answer {
 		if k, ok := i.(*dns.DNSKEY); ok {
 			if k.KeyTag() == r.(*dns.RRSIG).KeyTag {
@@ -212,20 +222,25 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 }
 
 func getRRsCoveredByRRSIG(fqdn string, rr dns.RR, section string) []dns.RR {
-	m := dnssecQuery(fqdn, rr.(*dns.RRSIG).TypeCovered, "")
+	m := directDnssecQuery(fqdn, rr.(*dns.RRSIG).TypeCovered, "")
 	var ret []dns.RR
-	var x []dns.RR
-	switch section {
-	case "Answer":
-		x = m.Answer
-	case "Ns":
-		x = m.Ns
-	case "Extra":
-		x = m.Extra
-	}
-	for _, r := range x {
+	for _, r := range m.Answer {
 		if _, ok := r.(*dns.RRSIG); !ok {
-			if r.Header().Rrtype == rr.(*dns.RRSIG).TypeCovered {
+			if r.Header().Rrtype == rr.(*dns.RRSIG).TypeCovered && r.Header().Name == rr.Header().Name {
+				ret = append(ret, r)
+			}
+		}
+	}
+	for _, r := range m.Ns {
+		if _, ok := r.(*dns.RRSIG); !ok {
+			if r.Header().Rrtype == rr.(*dns.RRSIG).TypeCovered && r.Header().Name == rr.Header().Name {
+				ret = append(ret, r)
+			}
+		}
+	}
+	for _, r := range m.Extra {
+		if _, ok := r.(*dns.RRSIG); !ok {
+			if r.Header().Rrtype == rr.(*dns.RRSIG).TypeCovered && r.Header().Name == rr.Header().Name {
 				ret = append(ret, r)
 			}
 		}
