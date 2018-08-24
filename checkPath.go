@@ -76,7 +76,7 @@ func checkPath(fqdn string, res *Result) {
 }
 
 func checkZSKverifiability(fqdn string) bool {
-	m := dnssecQuery(fqdn, dns.TypeRRSIG, "")
+	m := directDnssecQuery(fqdn, dns.TypeRRSIG, "")
 	for _, r := range m.Answer {
 		if r.(*dns.RRSIG).TypeCovered == dns.TypeDNSKEY {
 			if !r.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
@@ -97,10 +97,11 @@ func checkAuthNS(fqdn string) []Nameserver {
 	ret := []Nameserver{}
 	var x Nameserver
 	for _, r := range m.Answer {
-		x = Nameserver{}
-		x.Name = r.Header().Name
-		x.IP = regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4]
-		ret = append(ret, x)
+		if r.Header().Rrtype == dns.TypeNS {
+			x = Nameserver{}
+			x.Name = regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4]
+			ret = append(ret, x)
+		}
 	}
 	return ret
 }
@@ -110,7 +111,6 @@ func isResolver(ip string, zone string) bool {
 	if zone == x {
 		x = "bund.de"
 	}
-	// TODO: is this working?
 	m := dnssecQuery(x, dns.TypeA, ip)
 	if !(m.RecursionAvailable) {
 		if m.Answer == nil {

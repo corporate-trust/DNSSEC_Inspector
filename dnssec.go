@@ -90,10 +90,36 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	return *r
 }
 
-// Checks if the DNS server of the requested fqdn is authoritative and resolving at the same time
-// TODO:
-func checkAuthoritative(fqdn string) bool {
-	return true
+// Gets the list of authoritative nameserver for given zone
+func getAuthNS(fqdn string) []string {
+	m := dnssecQuery(fqdn, dns.TypeNS, "")
+	ret := make([]string, 0)
+	for _, r := range m.Answer {
+		if r.Header().Rrtype == dns.TypeNS {
+			ret = append(ret, regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4])
+		}
+	}
+	return ret
+}
+
+func directDnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
+	var r *dns.Msg
+	servers := getAuthNS(fqdn)
+	c := new(dns.Client)
+	m := new(dns.Msg)
+	m.SetQuestion(dns.Fqdn(fqdn), rrType)
+	m.SetEdns0(4096, true)
+	m.RecursionDesired = false
+	for _, s := range servers {
+		r, _, _ = c.Exchange(m, net.JoinHostPort(s, "53"))
+		if r != nil {
+			break
+		}
+	}
+	if r == nil {
+		Error.Fatalf("Cant resolve dns request by \n")
+	}
+	return *r
 }
 
 // Checks the existance of RRSIG rescource records

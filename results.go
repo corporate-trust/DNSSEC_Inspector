@@ -36,7 +36,7 @@ type Zone struct {
 // Nameserver describes …
 type Nameserver struct {
 	Name     string `json:"name"`
-	IP       string `json:"ip"`
+	IP       string `json:"ip,omitempty"`
 	Resolver bool   `json:"resolver"`
 }
 
