@@ -26,13 +26,21 @@ func (e *noDSerror) Error() string {
 	return fmt.Sprintf("%v\n -- Error: %s", e.key.String(), e.msg)
 }
 
-/* Checks the complete path up to the trust anchor
- */
+/* The function decomposes the original fqdn into its zones and lists all chained
+combinations from the root to each part.
+e.g. corporate-trust.de. is decomposed into the set {"corporate-trust.de.", "de.", "."}
+For the zones each combination represent the function checks...
+	* the existance and compliance of DNSKEY-RRs with BSI recommended practices
+	* the existance of NSEC3-RRs
+	* the validation of RRs
+Additionally the function identifies the trust anchor for this zone.
+*/
 func checkPath(fqdn string, res *Result) {
 	anchor := false
 	f := strings.Split(fqdn, ".")
 	l := len(f) - 1
 	var zoneList []string
+	// Domain decomposition
 	for i := range f {
 		zoneList = append([]string{strings.Join(f[l-i:], ".")}, zoneList...)
 	}
@@ -42,7 +50,7 @@ func checkPath(fqdn string, res *Result) {
 		z.FQDN = fqdn
 		z.AutoritativeNS = checkAuthNS(fqdn)
 		checkNSEC3Existence(fqdn, z)
-		// 1. Check section (includes checking the validation of ZSK)
+		// Check signed sections (includes checking the validation of ZSK)
 		checkRRValidation(fqdn, z)
 		zskValidity := checkZSKverifiability(fqdn)
 		m := dnssecQuery(fqdn, dns.TypeDNSKEY, "")
@@ -75,6 +83,10 @@ func checkPath(fqdn string, res *Result) {
 	return
 }
 
+/* The function checks wether a ZSK (zone signing key) is verifiable by its
+corresponding KSK (key signing key). It also checks the time boundaries of the
+key signature.
+*/
 func checkZSKverifiability(fqdn string) bool {
 	m := directDnssecQuery(fqdn, dns.TypeRRSIG, "")
 	for _, r := range m.Answer {
@@ -92,6 +104,9 @@ func checkZSKverifiability(fqdn string) bool {
 	return true
 }
 
+/* The function detects the authoritative nameservers for a zone.
+// TODO: Check zone file content of each authoritative nameserver (should be the same)
+*/
 func checkAuthNS(fqdn string) []Nameserver {
 	m := dnssecQuery(fqdn, dns.TypeNS, "")
 	ret := []Nameserver{}
@@ -99,6 +114,7 @@ func checkAuthNS(fqdn string) []Nameserver {
 	for _, r := range m.Answer {
 		if r.Header().Rrtype == dns.TypeNS {
 			x = Nameserver{}
+			// TODO: Simplify
 			x.Name = regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4]
 			ret = append(ret, x)
 		}
@@ -106,6 +122,9 @@ func checkAuthNS(fqdn string) []Nameserver {
 	return ret
 }
 
+/* Checks if a given nameserver (given by its ip) resolves a non-authoritative
+dns request. A authoritative nameserver shouldn't resolve.
+*/
 func isResolver(ip string, zone string) bool {
 	x := "google.com"
 	if zone == x {
@@ -120,7 +139,9 @@ func isResolver(ip string, zone string) bool {
 	return true
 }
 
-// Checks the validity of a KSK DNSKEY RR by checking the DS RR in the authoritative zone above
+/* Checks the validity of a KSK DNSKEY RR by checking the DS RR in the
+authoritative zone above
+*/
 func checkKSKverifiability(fqdn string, key dns.DNSKEY, res *Key) (bool, error) {
 	ds, err := getDSforKey(fqdn, key)
 	res.Verifiable = false
@@ -150,7 +171,7 @@ func getDSforKey(fqdn string, key dns.DNSKEY) (dns.DS, error) {
 	return dns.DS{}, errors.New("No DS RR for given key")
 }
 
-/* Removes all RRSIG artefacts from list and returns a list of true DNSKEY RRs
+/* Takes a list of RRs as dns.Msg and returns a set of contained DNSKEY-RRs.
  */
 func getDNSKEYs(m dns.Msg, t uint16) (ret []dns.DNSKEY) {
 	for _, r := range m.Answer {
@@ -161,8 +182,9 @@ func getDNSKEYs(m dns.Msg, t uint16) (ret []dns.DNSKEY) {
 	return
 }
 
-/* Filters all RRsigs covering a given type t and returns them.
- */
+/* Takes a list of RRs as dns.Msg and returns a set of contained RRs of a
+specified type.
+*/
 func getRRsigs(m dns.Msg, t uint16) (ret []*dns.RRSIG) {
 	x := m.Answer
 	if t == dns.TypeNS {
