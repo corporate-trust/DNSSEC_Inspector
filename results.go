@@ -16,8 +16,7 @@ type Result struct {
 
 // Zone describes a single zone file
 type Zone struct {
-	FQDN string `json:"fqdn"`
-	//Signatures            bool   `json:"signatures"`
+	FQDN                  string       `json:"fqdn"`
 	Validation            bool         `json:"validation"`
 	ValidatesAnswer       bool         `json:"validatesAnswer"`
 	ValidatesNs           bool         `json:"validatesNs"`
@@ -33,7 +32,6 @@ type Zone struct {
 	AutoritativeNS        []Nameserver `json:"authoritativeNS,omitempty"`
 }
 
-// Nameserver describes …
 type Nameserver struct {
 	Name     string `json:"name"`
 	IP       string `json:"ip,omitempty"`
@@ -54,6 +52,8 @@ type Key struct {
 	AUntil      string `json:"aUntil"`
 }
 
+// The function writeOutput writes the composed json to a file if
+// a filepath was given. If no filepath was given the result is printed to stdout.
 func (res *Result) writeOutput(filepath string) {
 	d, _ := json.Marshal(res)
 	if filepath == "" {
