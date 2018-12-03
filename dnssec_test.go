@@ -9,8 +9,8 @@ import (
 
 func TestBundDE(t *testing.T) {
 	res := Result{}
-	checkPath("bund.de", &res)
-	res.writeOutput("outest.json")
+	res.checkPath("bund.de")
+	res.writeResult("outest.json")
 }
 
 func TestOutputANYwithDNSSECrrs(t *testing.T) {
@@ -39,7 +39,7 @@ func TestCheckZSKverifiability(t *testing.T) {
 
 func TestCheckPath(t *testing.T) {
 	r := Result{}
-	checkPath("bsi.de", &r)
+	r.checkPath("bsi.de")
 }
 
 func TestBsiDE(t *testing.T) {
@@ -94,7 +94,7 @@ func TestMakeQuery(t *testing.T) {
 func TestListOfDNSresolvers(t *testing.T) {
 	servers := []string{"185.48.116.10", "185.48.118.6", "8.8.8.8", "8.8.4.4", "9.9.9.10", "4.2.2.1", "4.2.2.2", "4.2.2.3"}
 	results := make([]Result, len(servers))
-	for i, _ := range servers {
-		checkPath("bund.de", &results[i])
+	for i := range servers {
+		results[i].checkPath("bund.de")
 	}
 }

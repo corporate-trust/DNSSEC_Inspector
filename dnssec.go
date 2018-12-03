@@ -14,6 +14,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Log levels
 var (
 	Info    *log.Logger
 	Warning *log.Logger
@@ -44,11 +45,10 @@ func initLog(verbose bool, superverbose bool) {
 func main() {
 	var fqdn string
 	res := Result{}
-	// Call as command line tool with -standalone
 	fqdnPtr := flag.String("fqdn", "", "Domainname to test DNSSEC for")
 	outfilePtr := flag.String("f", "", "Filepath to write results to")
-	verbosePtr := flag.Bool("v", false, "Show warnings on toggle")
-	superverbosePtr := flag.Bool("vv", false, "Show info on toggle")
+	verbosePtr := flag.Bool("v", false, "Verbose - show warnings")
+	superverbosePtr := flag.Bool("vv", false, "Very verbose - show info logs")
 	flag.Parse()
 	initLog(*verbosePtr, *superverbosePtr)
 	if *fqdnPtr == "" {
@@ -57,11 +57,11 @@ func main() {
 		fqdn = *fqdnPtr
 		res.Target = fqdn
 	}
-	checkExistence(fqdn, &res)
+	res.checkExistence(fqdn)
 	if res.DNSSEC {
-		checkPath(fqdn, &res)
+		res.checkPath(fqdn)
 	}
-	res.writeOutput(*outfilePtr)
+	res.writeResult(*outfilePtr)
 	return
 }
 
@@ -90,12 +90,13 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	return *r
 }
 
-// Gets the list of authoritative nameserver for given zonet
-func getAuthNS(fqdn string) []string {
-	m := dnssecQuery(fqdn, dns.TypeNS, "")
+// Gets the list of authoritative nameserver for given zone
+func getAuthNS(zone string) []string {
+	m := dnssecQuery(zone, dns.TypeNS, "")
 	ret := make([]string, 0)
 	for _, r := range m.Answer {
 		if r.Header().Rrtype == dns.TypeNS {
+			// TODO: Simplify
 			ret = append(ret, regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4])
 		}
 	}
@@ -122,9 +123,8 @@ func directDnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	return *r
 }
 
-// Checks the existance of RRSIG rescource records
-// on given domain
-func checkExistence(fqdn string, res *Result) bool {
+// Checks the existance of RRSIG rescource records for a given domain
+func (res *Result) checkExistence(fqdn string) bool {
 	r := dnssecQuery(fqdn, dns.TypeRRSIG, "")
 	if r.Answer == nil {
 		res.DNSSEC = false
@@ -141,14 +141,14 @@ RFC5155#Section-3
 If an NSEC3PARAM RR is present at the apex of a zone with a Flags field
 value of zero, then thre MUST be an NSEC3 RR using the same hash algorithm,
 iterations, and salt parameters … */
-func checkNSEC3Existence(fqdn string, out *Zone) bool {
+func (z *Zone) checkNSEC3Existence(fqdn string) bool {
 	r := dnssecQuery(fqdn, dns.TypeNSEC3PARAM, "")
 	if len(r.Answer) > 0 {
 		for _, i := range r.Answer {
 			x := regexp.MustCompile("( +|\t+)").Split(i.String(), -1)
 			if x[5] == "0" {
-				out.NSEC3 = true
-				out.NSEC3iter, _ = strconv.Atoi(x[6])
+				z.NSEC3 = true
+				z.NSEC3iter, _ = strconv.Atoi(x[6])
 				return true
 			}
 		}
@@ -200,7 +200,7 @@ func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 			} else {
 				records = getRRsCoveredByRRSIG(fqdn, rr, section)
 			}
-			if err := rr.(*dns.RRSIG).Verify(key, records); err != nil 
+			if err := rr.(*dns.RRSIG).Verify(key, records); err != nil {
 				return false, &validationError{rr, "Cannot validate the siganture cryptographically"}
 			}
 		}

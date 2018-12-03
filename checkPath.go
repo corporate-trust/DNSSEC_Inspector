@@ -35,7 +35,7 @@ For the zones each combination represent the function checks...
 	* the validation of RRs
 Additionally the function identifies the trust anchor for this zone.
 */
-func checkPath(fqdn string, res *Result) {
+func (res *Result) checkPath(fqdn string) {
 	anchor := false
 	f := strings.Split(fqdn, ".")
 	l := len(f) - 1
@@ -49,7 +49,7 @@ func checkPath(fqdn string, res *Result) {
 		z := &Zone{}
 		z.FQDN = fqdn
 		z.AutoritativeNS = checkAuthNS(fqdn)
-		checkNSEC3Existence(fqdn, z)
+		z.checkNSEC3Existence(fqdn)
 		// Check signed sections (includes checking the validation of ZSK)
 		checkRRValidation(fqdn, z)
 		zskValidity := checkZSKverifiability(fqdn)
@@ -63,7 +63,7 @@ func checkPath(fqdn string, res *Result) {
 		keys = getDNSKEYs(m, KSK)
 		keyRes2 := make([]Key, len(keys))
 		for i, k := range keys {
-			checkKSKverifiability(fqdn, k, &keyRes2[i])
+			keyRes2[i].checkKSKverifiability(fqdn, k)
 			checkKey(k, &keyRes2[i])
 			if keyRes2[i].TrustAnchor {
 				anchor = true
@@ -142,19 +142,19 @@ func isResolver(ip string, zone string) bool {
 /* Checks the validity of a KSK DNSKEY RR by checking the DS RR in the
 authoritative zone above
 */
-func checkKSKverifiability(fqdn string, key dns.DNSKEY, res *Key) (bool, error) {
+func (k *Key) checkKSKverifiability(fqdn string, key dns.DNSKEY) (bool, error) {
 	ds, err := getDSforKey(fqdn, key)
-	res.Verifiable = false
-	res.TrustAnchor = false
+	k.Verifiable = false
+	k.TrustAnchor = false
 	if err == nil {
 		newDS := key.ToDS(ds.DigestType)
 		if ds.Digest == (*newDS).Digest {
-			res.Verifiable = true
+			k.Verifiable = true
 			return true, nil
 		}
 		return false, errors.New("DS does not match")
 	}
-	res.TrustAnchor = true
+	k.TrustAnchor = true
 	return false, err
 }
 

@@ -1,7 +1,9 @@
-# DNSSEC Inspection Module
+# DNSSEC Inspector
 
-* Is part of the cydis scoring
 * Is written in golang (v1.10)
+
+## Dependencies
+* github.com/miekg/dns
 
 ## Installation
 
@@ -182,8 +184,7 @@ Command: ./cydis_DNSSEC -fqdn=bsi.de
 
 * TSIG
 * Checking the autoritative DNS Server
-    * Banner grabbing
+    * Banner grabbing?
     * Redundant DNS Servers
     * Transactions allowed without authentication
-    * Authoritative AND resolving?
-* ...
+* …
