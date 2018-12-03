@@ -196,11 +196,15 @@ Command: ./dnssec_inspector -fqdn=bsi.de
 
 ## Impressum
 Corporate Trust Business Risk & Crisis Management GmbH
+
 Graf-zu-Castell-Straße 1
+
 D-81829 München
 
 T +49 89 599 88 75 80
+
 F +49 89 599 88 75 820
 
 info@corporate-trust.de
+
 https://www.corporate-trust.de/en/
