@@ -26,22 +26,6 @@ type validationError struct {
 	msg string
 }
 
-func (e *validationError) Error() string {
-	return fmt.Sprintf("%s - %s", e.rr.Header().String(), e.msg)
-}
-
-func initLog(verbose bool, superverbose bool) {
-	Info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
-	if !verbose || !superverbose {
-		Warning.SetOutput(ioutil.Discard)
-	}
-	if !superverbose {
-		Info.SetOutput(ioutil.Discard)
-	}
-	Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-}
-
 func main() {
 	var fqdn string
 	res := Result{}
@@ -63,6 +47,22 @@ func main() {
 	}
 	res.writeResult(*outfilePtr)
 	return
+}
+
+func (e *validationError) Error() string {
+	return fmt.Sprintf("%s - %s", e.rr.Header().String(), e.msg)
+}
+
+func initLog(verbose bool, superverbose bool) {
+	Info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
+	if !verbose || !superverbose {
+		Warning.SetOutput(ioutil.Discard)
+	}
+	if !superverbose {
+		Info.SetOutput(ioutil.Discard)
+	}
+	Error = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
 /* Queries for a given fully qualified domain name and a given type of resource
