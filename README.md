@@ -1,23 +1,28 @@
 # DNSSEC Inspector
 
-* Is written in golang (v1.10)
+## Copyright disclaimer
+Corporate Trust Business & Crisis Management GmbH claims all copyright interest
+in the program "DNSSEC_Inspector" written by Arthur Naefe and Fabian Ober.
+
+The program is available under the BSD-3-Clause license.
 
 ## Dependencies
 * github.com/miekg/dns
+* go (v1.10+)
 
 ## Installation
 
 * mkdir ~/go
 * export GOPATH=$HOME/go
-* Clone repository (ct002.trust.local:3000/naefe/cydis_DNSSEC)
+* clone repository
 * go get github.com/miekg/dns
-* cd $GOPATH/cydis_DNSSEC
+* cd $GOPATH/dnssec_inspector
 * go build
-* Executable = cydis_DNSSEC
+* Executable = dnssec_inspector
 
 Structure:
 * ~/go (=$GOPATH)
-* ~/go/src/cydis_DNSSEC
+* ~/go/src/dnssec_inspector
     * gofiles
 
 ## Libraries used
@@ -38,7 +43,7 @@ Structure:
 
 ## Standalone example
 
-Command: ./cydis_DNSSEC -fqdn=bsi.de
+Command: ./dnssec_inspector -fqdn=bsi.de
 
 ``` json
 {
@@ -188,3 +193,14 @@ Command: ./cydis_DNSSEC -fqdn=bsi.de
     * Redundant DNS Servers
     * Transactions allowed without authentication
 * …
+
+## Impressum
+Corporate Trust Business Risk & Crisis Management GmbH
+Graf-zu-Castell-Straße 1
+D-81829 München
+
+T +49 89 599 88 75 80
+F +49 89 599 88 75 820
+
+info@corporate-trust.de
+https://www.corporate-trust.de/en/
