@@ -1,10 +1,10 @@
 # DNSSEC Inspector
 
+Urheber: Arthur Naefe und Fabian Ober
+
 ## Copyright disclaimer
 Corporate Trust Business & Crisis Management GmbH claims all copyright interest
 in the program "DNSSEC_Inspector" written by Arthur Naefe and Fabian Ober.
-
-The program is available under the BSD-3-Clause license.
 
 ## Dependencies
 * github.com/miekg/dns
