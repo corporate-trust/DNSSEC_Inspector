@@ -38,6 +38,7 @@ type Nameserver struct {
 	Name     string `json:"name"`
 	IP       string `json:"ip,omitempty"`
 	Resolver bool   `json:"resolver"`
+	EDNS0    bool   `json:"edns0"`
 }
 
 // Key struct contains all valuable information about a single DNSKEY RR

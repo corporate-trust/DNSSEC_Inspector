@@ -49,6 +49,9 @@ func (res *Result) checkPath(fqdn string) {
 		z := &Zone{}
 		z.FQDN = fqdn
 		z.AutoritativeNS = checkAuthNS(fqdn)
+		for i := range z.AutoritativeNS {
+			z.AutoritativeNS[i].checkEDNS0(res.Target)
+		}
 		z.checkNSEC3Existence(fqdn)
 		// Check signed sections (includes checking the validation of ZSK)
 		checkRRValidation(fqdn, z)
@@ -196,4 +199,13 @@ func getRRsigs(m dns.Msg, t uint16) (ret []*dns.RRSIG) {
 		}
 	}
 	return
+}
+
+// Checks if the authServer supports EDNS0 extension
+func (n *Nameserver) checkEDNS0(target string) {
+	m := directDnssecQuery(target, dns.TypeANY, n.Name)
+	n.EDNS0 = false
+	if m.IsEdns0() != nil {
+		n.EDNS0 = true
+	}
 }

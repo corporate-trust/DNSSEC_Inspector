@@ -42,9 +42,7 @@ func main() {
 		res.Target = fqdn
 	}
 	res.checkExistence(fqdn)
-	if res.DNSSEC {
-		res.checkPath(fqdn)
-	}
+	res.checkPath(fqdn)
 	res.writeResult(*outfilePtr)
 	return
 }
@@ -71,7 +69,7 @@ records. It also includes the DNSSEC relevant matrial.
 func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
 	c := new(dns.Client)
-	c.Net = "tcp"
+	//c.Net = "tcp"
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
 	m.SetEdns0(4096, true)
@@ -105,7 +103,12 @@ func getAuthNS(zone string) []string {
 
 func directDnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	var r *dns.Msg
-	servers := getAuthNS(fqdn)
+	var servers []string
+	if server == "" {
+		servers = getAuthNS(fqdn)
+	} else {
+		servers = []string{server}
+	}
 	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
@@ -128,7 +131,7 @@ func (res *Result) checkExistence(fqdn string) bool {
 	r := dnssecQuery(fqdn, dns.TypeRRSIG, "")
 	if r.Answer == nil {
 		res.DNSSEC = false
-		Error.Fatalf("Couldnt verify DNSSEC Existance for %s\n", fqdn)
+		Info.Printf("Couldnt verify DNSSEC Existance for %s\n", fqdn)
 		return false
 	}
 	res.DNSSEC = true
