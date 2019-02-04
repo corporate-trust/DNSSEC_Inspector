@@ -201,7 +201,7 @@ func getRRsigs(m dns.Msg, t uint16) (ret []*dns.RRSIG) {
 	return
 }
 
-// Checks if the authServer supports EDNS0 extension
+// Checks if the authServer supports EDNS0 extension by checking the additional OPT-RR (meta-RR)
 func (n *Nameserver) checkEDNS0(target string) {
 	m := directDnssecQuery(target, dns.TypeANY, n.Name)
 	n.EDNS0 = false

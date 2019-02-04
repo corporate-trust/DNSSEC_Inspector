@@ -48,13 +48,38 @@ Command: ./dnssec_inspector -fqdn=bsi.de
 ``` json
 {
     "dnssec": true,
-    "target": "bund.de",
+    "target": "bsi.de",
     "trustIsland": false,
-    "trustIslandAnchorZone": "",
     "zones": [
         {
-            "NSEC3iter": 10,
-            "fqdn": "bund.de",
+            "authoritativeNS": [
+                {
+                    "edns0": true,
+                    "name": "dns-1.dfn.de.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "xenon.bund.de.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "argon.bund.de.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "nuernberg.bund.de.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "bamberg.bund.de.",
+                    "resolver": false
+                }
+            ],
+            "fqdn": "bsi.de",
             "keycount": 2,
             "keys": [
                 {
@@ -67,7 +92,7 @@ Command: ./dnssec_inspector -fqdn=bsi.de
                     "keyLength": 1024,
                     "trustAnchor": false,
                     "type": "ZSK",
-                    "valid": false
+                    "valid": true
                 },
                 {
                     "aComment": "COMPLIANT",
@@ -83,16 +108,45 @@ Command: ./dnssec_inspector -fqdn=bsi.de
                 }
             ],
             "nsec3": true,
+            "nsec3iter": 10,
             "validatesAnswer": true,
             "validatesExtra": true,
             "validatesNs": true,
-            "validation": true,
-            "validationErrorAnswer": "",
-            "validationErrorExtra": "",
-            "validationErrorNs": ""
+            "validation": true
         },
         {
-            "NSEC3iter": 15,
+            "authoritativeNS": [
+                {
+                    "edns0": true,
+                    "name": "a.nic.de.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "l.de.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "n.de.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "f.nic.de.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "s.de.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "z.nic.de.",
+                    "resolver": false
+                }
+            ],
             "fqdn": "de",
             "keycount": 2,
             "keys": [
@@ -106,7 +160,7 @@ Command: ./dnssec_inspector -fqdn=bsi.de
                     "keyLength": 1024,
                     "trustAnchor": false,
                     "type": "ZSK",
-                    "valid": false
+                    "valid": true
                 },
                 {
                     "aComment": "COMPLIANT",
@@ -122,18 +176,82 @@ Command: ./dnssec_inspector -fqdn=bsi.de
                 }
             ],
             "nsec3": true,
+            "nsec3iter": 15,
             "validatesAnswer": true,
             "validatesExtra": true,
             "validatesNs": true,
-            "validation": true,
-            "validationErrorAnswer": "",
-            "validationErrorExtra": "",
-            "validationErrorNs": ""
+            "validation": true
         },
         {
-            "NSEC3iter": 0,
+            "authoritativeNS": [
+                {
+                    "edns0": true,
+                    "name": "a.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "b.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "c.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "d.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "e.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "f.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "g.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "h.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "i.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "j.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "k.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "l.root-servers.net.",
+                    "resolver": false
+                },
+                {
+                    "edns0": true,
+                    "name": "m.root-servers.net.",
+                    "resolver": false
+                }
+            ],
             "fqdn": ".",
-            "keycount": 3,
+            "keycount": 2,
             "keys": [
                 {
                     "aComment": "COMPLIANT",
@@ -145,19 +263,7 @@ Command: ./dnssec_inspector -fqdn=bsi.de
                     "keyLength": 2048,
                     "trustAnchor": false,
                     "type": "ZSK",
-                    "valid": false
-                },
-                {
-                    "aComment": "COMPLIANT",
-                    "aUntil": "2022",
-                    "alg": "RSA",
-                    "hComment": "COMPLIANT",
-                    "hUntil": "prognosis impossible (2023+)",
-                    "hash": "SHA-256",
-                    "keyLength": 2048,
-                    "trustAnchor": true,
-                    "type": "KSK",
-                    "valid": false
+                    "valid": true
                 },
                 {
                     "aComment": "COMPLIANT",
@@ -173,16 +279,15 @@ Command: ./dnssec_inspector -fqdn=bsi.de
                 }
             ],
             "nsec3": false,
+            "nsec3iter": 0,
             "validatesAnswer": true,
             "validatesExtra": true,
             "validatesNs": true,
-            "validation": true,
-            "validationErrorAnswer": "",
-            "validationErrorExtra": "",
-            "validationErrorNs": ""
+            "validation": true
         }
     ]
 }
+
 ```
 
 ## Further TODOs?
