@@ -75,14 +75,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "MD5"
 			k.HComment = "NON-COMPLIANT"
-			k.HUntil = "09.2004"
+			k.HUntil = "2004"
 		case "3": // DSA/SHA-1
 			k.Alg = "DSA"
 			_, _, _, _, k.KeyLength = parseDSA(x[7])
@@ -91,14 +91,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "SHA-1"
 			k.HComment = "NON-COMPLIANT"
-			k.HUntil = "10.2015"
+			k.HUntil = "2015"
 		case "5": // RSA/SHA-1
 			k.Alg = "RSA"
 			_, _, k.KeyLength = parseRSA(x[7])
@@ -107,14 +107,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "SHA-1"
 			k.HComment = "NON-COMPLIANT"
-			k.HUntil = "10.2015"
+			k.HUntil = "2015"
 		case "6": // DSA/SHA-1/NSEC3
 			k.Alg = "DSA"
 			_, _, _, _, k.KeyLength = parseDSA(x[7])
@@ -123,14 +123,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "SHA-1"
 			k.HComment = "NON-COMPLIANT"
-			k.HUntil = "10.2015"
+			k.HUntil = "2015"
 		case "7": // RSA/SHA-1/NSEC3
 			k.Alg = "RSA"
 			_, _, k.KeyLength = parseRSA(x[7])
@@ -139,14 +139,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "SHA-1"
 			k.HComment = "NON-COMPLIANT"
-			k.HUntil = "10.2015"
+			k.HUntil = "2015"
 		case "8": // RSA/SHA-256
 			k.Alg = "RSA"
 			_, _, k.KeyLength = parseRSA(x[7])
@@ -155,14 +155,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "SHA-256"
 			k.HComment = "COMPLIANT"
-			k.HUntil = "prognosis impossible (2023+)"
+			k.HUntil = "9999"
 		case "10": // RSA/SHA-512
 			k.Alg = "RSA"
 			_, _, k.KeyLength = parseRSA(x[7])
@@ -171,14 +171,14 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 				k.AUntil = "2022"
 			} else if k.KeyLength >= 3072 {
 				k.AComment = "COMPLIANT"
-				k.AUntil = "prognosis impossible (2023+)"
+				k.AUntil = "9999"
 			} else {
 				k.AComment = "NON-COMPLIANT"
-				//k.AUntil = ""
+				k.AUntil = "0000"
 			}
 			k.Hash = "SHA-256"
 			k.HComment = "COMPLIANT"
-			k.HUntil = "prognosis impossible (2023+)"
+			k.HUntil = "9999"
 		case "13": // ECDSA P-256 with SHA-256
 			k.Alg = "ECDSA P-256"
 			k.KeyLength = 256
@@ -186,31 +186,31 @@ func checkKey(keyRR dns.DNSKEY, k *Key) {
 			k.AUntil = "2022"
 			k.Hash = "SHA-256"
 			k.HComment = "COMPLIANT"
-			k.HUntil = "prognosis impossible (2023+)"
+			k.HUntil = "9999"
 		case "14": // ECDSA P-384 with SHA-384
 			k.Alg = "ECDSA P-384"
 			k.KeyLength = 384
 			k.AComment = "COMPLIANT"
-			k.AUntil = "prognosis impossible (2023+)"
+			k.AUntil = "9999"
 			k.Hash = "SHA-384"
 			k.HComment = "COMPLIANT"
-			k.HUntil = "prognosis impossible (2023+)"
+			k.HUntil = "9999"
 		case "15": // ED25519 (128bit sec)
 			k.Alg = "Ed25519"
 			k.KeyLength = 256
 			k.AComment = "COMPLIANT"
-			k.AUntil = "prognosis impossible (2023+)"
+			k.AUntil = "9999"
 			k.Hash = "SHA-512"
 			k.HComment = "COMPLIANT"
-			k.HUntil = "prognosis impossible (2023+)"
+			k.HUntil = "9999"
 		case "16": // ED448
 			k.Alg = "Ed25519"
 			k.KeyLength = 488
 			k.AComment = "COMPLIANT"
-			k.AUntil = "prognosis impossible (2023+)"
+			k.AUntil = "9999"
 			k.Hash = "SHAKE-256"
 			k.HComment = "COMPLIANT"
-			k.HUntil = "prognosis impossible (2023+)"
+			k.HUntil = "9999"
 		default:
 		}
 	}
