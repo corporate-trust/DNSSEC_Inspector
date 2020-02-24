@@ -51,6 +51,30 @@ func main() {
 			Cache = ""
 		} else {
 			Cache = *cachePath
+			cacheDir, err := os.Open(Cache)
+			if err != nil {
+				Error.Printf("Cannot open cache directory: " + Cache)
+			}
+			files, err := cacheDir.Readdirnames(0)
+			if err != nil {
+				Error.Printf("Cannot read cache directory content")
+			}
+			for _, f := range files {
+				info, err := os.Stat(Cache + "/" + f)
+				if err != nil {
+					Warning.Printf("Cannot get stats for file: " + f)
+				} else {
+					duration := time.Now().Unix() - info.ModTime().Unix()
+					if duration > 3600 {
+						err := os.Remove(Cache + "/" + f)
+						if err != nil {
+							Warning.Printf("Failed to remove file: " + f)
+						} else {
+							Info.Printf("Removed cache file: " + f)
+						}
+					}
+				}
+			}
 		}
 	}
 	res.checkExistence(fqdn)
@@ -66,7 +90,7 @@ func (e *validationError) Error() string {
 func initLog(verbose bool, superverbose bool) {
 	Info = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
 	Warning = log.New(os.Stdout, "WARNING: ", log.Ldate|log.Ltime|log.Lshortfile)
-	if !verbose || !superverbose {
+	if !verbose && !superverbose {
 		Warning.SetOutput(ioutil.Discard)
 	}
 	if !superverbose {
@@ -97,7 +121,12 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 				return *rc
 			}
 			//Remove old chache file
-			_ = os.Remove(cacheID)
+			err = os.Remove(cacheID)
+			if err != nil {
+				Warning.Printf("Failed to remove file: " + cacheID)
+			} else {
+				Info.Printf("Removed cache file: " + cacheID)
+			}
 		}
 	}
 
@@ -143,6 +172,7 @@ func getAuthNS(zone string) []string {
 	ret := make([]string, 0)
 	for _, r := range m.Answer {
 		if r.Header().Rrtype == dns.TypeNS {
+			// TODO: Simplify
 			ret = append(ret, regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4])
 		}
 	}
