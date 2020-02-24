@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/miekg/dns"
@@ -19,6 +20,7 @@ var (
 	Info    *log.Logger
 	Warning *log.Logger
 	Error   *log.Logger
+	Cache   string
 )
 
 type validationError struct {
@@ -33,6 +35,7 @@ func main() {
 	outfilePtr := flag.String("f", "", "Filepath to write results to")
 	verbosePtr := flag.Bool("v", false, "Verbose - show warnings")
 	superverbosePtr := flag.Bool("vv", false, "Very verbose - show info logs")
+	cachePath := flag.String("cache", "", "Cache directory either being empty or containing an old cache")
 	flag.Parse()
 	initLog(*verbosePtr, *superverbosePtr)
 	if *fqdnPtr == "" {
@@ -40,6 +43,15 @@ func main() {
 	} else {
 		fqdn = *fqdnPtr
 		res.Target = fqdn
+	}
+	if *cachePath != "" {
+		_, err := os.Stat(*cachePath)
+		if err != nil {
+			Warning.Println("Cache directory: " + *cachePath + " does not exist")
+			Cache = ""
+		} else {
+			Cache = *cachePath
+		}
 	}
 	res.checkExistence(fqdn)
 	res.checkPath(fqdn)
@@ -67,23 +79,60 @@ func initLog(verbose bool, superverbose bool) {
 records. It also includes the DNSSEC relevant matrial.
 */
 func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
-	config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
+	var r *dns.Msg
+	var servers []string
+	cacheID := ""
+	if Cache != "" {
+		cacheID = Cache + "dns_" + fqdn + "_" + fmt.Sprint(rrType) + "_" + server
+	}
+	if cacheID != "" {
+		info, err := os.Stat(cacheID)
+		if err == nil {
+			duration := time.Now().Unix() - info.ModTime().Unix()
+			if duration < 3600 {
+				data, _ := ioutil.ReadFile(cacheID)
+				rc := new(dns.Msg)
+				rc.Unpack(data)
+				Info.Printf("Cache hit fpr %s\n", fqdn)
+				return *rc
+			}
+			//Remove old chache file
+			_ = os.Remove(cacheID)
+		}
+	}
+
+	if server == "" {
+		config, _ := dns.ClientConfigFromFile("/etc/resolv.conf")
+		servers = config.Servers
+	} else if server == "AuthNS" {
+		i := strings.Index(fqdn, ".")
+		if i == -1 {
+			servers = getAuthNS(fqdn)
+		} else {
+			i++
+			servers = getAuthNS(fqdn[i:])
+		}
+	} else {
+		servers = []string{server}
+	}
 	c := new(dns.Client)
-	//c.Net = "tcp"
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), rrType)
 	m.SetEdns0(4096, true)
 	m.RecursionDesired = true
-	var r *dns.Msg
-	for _, x := range config.Servers {
-		r, _, _ = c.Exchange(m, net.JoinHostPort(x, config.Port))
+	for _, x := range servers {
+		r, _, _ = c.Exchange(m, net.JoinHostPort(x, "53"))
 		if r != nil {
-			//			Warning.Print("Got answer")
 			break
 		}
 	}
-	if r == nil {
-		Error.Fatalf("Cant resolve dns question with any server\n")
+	if cacheID != "" {
+		if r == nil {
+			Error.Fatalf("Cant resolve dns question with server(s) %s\n", servers)
+		} else {
+			rjs, _ := r.Pack()
+			ioutil.WriteFile(cacheID, rjs, 0777)
+		}
 	}
 	return *r
 }
@@ -94,36 +143,10 @@ func getAuthNS(zone string) []string {
 	ret := make([]string, 0)
 	for _, r := range m.Answer {
 		if r.Header().Rrtype == dns.TypeNS {
-			// TODO: Simplify
 			ret = append(ret, regexp.MustCompile("( +|\t+)").Split(r.String(), -1)[4])
 		}
 	}
 	return ret
-}
-
-func directDnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
-	var r *dns.Msg
-	var servers []string
-	if server == "" {
-		servers = getAuthNS(fqdn)
-	} else {
-		servers = []string{server}
-	}
-	c := new(dns.Client)
-	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(fqdn), rrType)
-	m.SetEdns0(4096, true)
-	m.RecursionDesired = false
-	for _, s := range servers {
-		r, _, _ = c.Exchange(m, net.JoinHostPort(s, "53"))
-		if r != nil {
-			break
-		}
-	}
-	if r == nil {
-		Error.Fatalf("Cant resolve dns request by \n")
-	}
-	return *r
 }
 
 // Checks the existance of RRSIG rescource records for a given domain
@@ -162,7 +185,7 @@ func (z *Zone) checkNSEC3Existence(fqdn string) bool {
 /* Checks if the RRSIG records for fqdn can be validated */
 func checkRRValidation(fqdn string, out *Zone) bool {
 	// get RRSIG RR to check
-	r := directDnssecQuery(fqdn, dns.TypeANY, "")
+	r := dnssecQuery(fqdn, dns.TypeANY, "AuthNS")
 	var err error
 	if out.ValidatesAnswer, err = checkSection(fqdn, r.Answer, "Answer"); err != nil {
 		out.ValidationErrorAnswer = err.Error()
@@ -183,7 +206,7 @@ func checkRRValidation(fqdn string, out *Zone) bool {
 	return out.Validation
 }
 
-// Checks a given list of RRs (r) from a section on RRSIG RRs and validates the
+// Checks a given list of RRs (r) from a section on RRSIG RRs and validates them
 func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 	ret := true
 	for _, rr := range r {
@@ -202,9 +225,14 @@ func checkSection(fqdn string, r []dns.RR, section string) (bool, error) {
 				}
 			} else {
 				records = getRRsCoveredByRRSIG(fqdn, rr, section)
+				if section == "Ns" && len(records) == 0 {
+					return true, nil
+				}
 			}
-			if err := rr.(*dns.RRSIG).Verify(key, records); err != nil {
-				return false, &validationError{rr, "Cannot validate the siganture cryptographically"}
+			err := rr.(*dns.RRSIG).Verify(key, records)
+			if err != nil {
+				errstr := fmt.Sprintf("Cannot validate the siganture cryptographically: %s", err)
+				return false, &validationError{rr, errstr}
 			}
 		}
 	}
@@ -225,7 +253,7 @@ func getKeyForRRSIG(fqdn string, r dns.RR) *dns.DNSKEY {
 }
 
 func getRRsCoveredByRRSIG(fqdn string, rr dns.RR, section string) []dns.RR {
-	m := directDnssecQuery(fqdn, rr.(*dns.RRSIG).TypeCovered, "")
+	m := dnssecQuery(fqdn, rr.(*dns.RRSIG).TypeCovered, "AuthNS")
 	var ret []dns.RR
 	for _, r := range m.Answer {
 		if _, ok := r.(*dns.RRSIG); !ok {
