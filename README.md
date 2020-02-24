@@ -290,6 +290,11 @@ Command: ./dnssec_inspector -fqdn=bsi.de
 
 ```
 
+## Caching
+* To speed up consecutive queries we implemented a simple file based caching.
+* To use the caching functionality just set the cache flag to an empty directory.
+* It will reuses query results which are not older than a hour.
+
 ## Further TODOs?
 
 * TSIG

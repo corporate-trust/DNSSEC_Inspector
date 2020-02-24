@@ -91,7 +91,7 @@ corresponding KSK (key signing key). It also checks the time boundaries of the
 key signature.
 */
 func checkZSKverifiability(fqdn string) bool {
-	m := directDnssecQuery(fqdn, dns.TypeRRSIG, "")
+	m := dnssecQuery(fqdn, dns.TypeRRSIG, "AuthNS")
 	for _, r := range m.Answer {
 		if r.(*dns.RRSIG).TypeCovered == dns.TypeDNSKEY {
 			if !r.(*dns.RRSIG).ValidityPeriod(time.Now().UTC()) {
@@ -203,7 +203,7 @@ func getRRsigs(m dns.Msg, t uint16) (ret []*dns.RRSIG) {
 
 // Checks if the authServer supports EDNS0 extension by checking the additional OPT-RR (meta-RR)
 func (n *Nameserver) checkEDNS0(target string) {
-	m := directDnssecQuery(target, dns.TypeANY, n.Name)
+	m := dnssecQuery(target, dns.TypeANY, n.Name)
 	n.EDNS0 = false
 	if m.IsEdns0() != nil {
 		n.EDNS0 = true
