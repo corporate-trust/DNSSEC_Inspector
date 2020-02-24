@@ -83,7 +83,7 @@ func dnssecQuery(fqdn string, rrType uint16, server string) dns.Msg {
 	var servers []string
 	cacheID := ""
 	if Cache != "" {
-		cacheID = Cache + "dns_" + fqdn + "_" + fmt.Sprint(rrType) + "_" + server
+		cacheID = Cache + "/dns_" + fqdn + "_" + fmt.Sprint(rrType) + "_" + server
 	}
 	if cacheID != "" {
 		info, err := os.Stat(cacheID)
