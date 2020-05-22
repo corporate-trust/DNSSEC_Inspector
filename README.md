@@ -7,15 +7,15 @@ Corporate Trust Business & Crisis Management GmbH claims all copyright interest
 in the program "DNSSEC_Inspector" written by Arthur Naefe and Fabian Ober.
 
 ## Dependencies
-* github.com/miekg/dns
-* go (v1.10+)
+* [github.com/miekg/dns](https://github.com/miekg/dns)
+* [go (v1.10+)](https://golang.org/dl/)
 
 ## Installation
 
 * mkdir ~/go
 * export GOPATH=$HOME/go
 * clone repository
-* go get github.com/miekg/dns
+* go get [github.com/miekg/dns](https://github.com/miekg/dns)
 * cd $GOPATH/dnssec_inspector
 * go build
 * Executable = dnssec_inspector
@@ -39,7 +39,7 @@ Structure:
 * regexp
 * strconv
 * time
-* github.com/miekg/dns
+* [github.com/miekg/dns](https://github.com/miekg/dns)
 
 ## Standalone example
 
@@ -317,4 +317,4 @@ F +49 89 599 88 75 820
 
 info@corporate-trust.de
 
-https://www.corporate-trust.de/en/
+[corporate-trust.de/en/](https://www.corporate-trust.de/en/)
