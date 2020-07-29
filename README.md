@@ -43,8 +43,9 @@ Structure:
 
 ## Standalone example
 
-Command: ./dnssec_inspector -fqdn=bsi.de
-
+<details>
+  <summary>Command: ./dnssec_inspector -fqdn=bsi.de</summary>
+   
 ``` json
 {
     "dnssec": true,
@@ -289,6 +290,8 @@ Command: ./dnssec_inspector -fqdn=bsi.de
 }
 
 ```
+</details>
+
 
 ## Caching
 * To speed up consecutive queries we implemented a simple file based caching.
