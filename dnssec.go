@@ -39,7 +39,7 @@ func main() {
 	flag.Parse()
 	initLog(*verbosePtr, *superverbosePtr)
 	if *fqdnPtr == "" {
-		Error.Fatal("No domain name was given! Please speify one with --fqdn=example.com\n")
+		Error.Fatal("No domain name was given! Please specify one with --fqdn=example.com\n")
 	} else {
 		fqdn = *fqdnPtr
 		res.Target = fqdn
