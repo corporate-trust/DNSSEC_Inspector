@@ -15,7 +15,7 @@ in the program "DNSSEC_Inspector" written by Arthur Naefe and Fabian Ober.
 * mkdir ~/go
 * export GOPATH=$HOME/go
 * clone repository
-* go get [github.com/miekg/dns](https://github.com/miekg/dns)
+* go get https://github.com/miekg/dns
 * cd $GOPATH/dnssec_inspector
 * go build
 * Executable = dnssec_inspector
@@ -39,7 +39,7 @@ Structure:
 * regexp
 * strconv
 * time
-* [github.com/miekg/dns](https://github.com/miekg/dns)
+* github.com/miekg/dns
 
 ## Standalone example
 
